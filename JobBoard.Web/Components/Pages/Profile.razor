@@ -1,0 +1,143 @@
+﻿@page "/profile"
+
+@using System.Security.Claims
+@using JobBoard.Web.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthApiClient AuthApi
+
+@attribute [Authorize]
+
+@rendermode InteractiveServer
+
+<PageTitle>My Profile</PageTitle>
+
+<div class="container py-4">
+    <h1 class="fw-bold mb-4">Profile</h1>
+
+    @if (profile == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <div class="card shadow-sm" style="background-color: var(--bg-card);">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nickname</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control" @bind="editNickname" />
+                        <button class="btn btn-primary" @onclick="UpdateNickname" disabled="@isUpdating">
+                            @(isUpdating ? "Saving..." : "Save")
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(nicknameError))
+                    {
+                        <div class="text-danger mt-1">@nicknameError</div>
+                    }
+                </div>
+
+                <hr />
+
+                <h5>Change Password</h5>
+                <div class="mb-3">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" class="form-control" @bind="currentPassword" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">New Password</label>
+                    <input type="password" class="form-control" @bind="newPassword" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirm New Password</label>
+                    <input type="password" class="form-control" @bind="confirmPassword" />
+                </div>
+                <button class="btn btn-outline-primary" @onclick="ChangePassword" disabled="@isChangingPassword">
+                    @(isChangingPassword ? "Changing..." : "Change Password")
+                </button>
+                @if (!string.IsNullOrEmpty(passwordMessage))
+                {
+                    <div class="alert alert-info mt-3">@passwordMessage</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private ProfileResponse? profile;
+    private string editNickname = "";
+    private string nicknameError = "";
+    private bool isUpdating;
+
+    private string currentPassword = "";
+    private string newPassword = "";
+    private string confirmPassword = "";
+    private bool isChangingPassword;
+    private string? passwordMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        profile = await AuthApi.GetProfileAsync();
+        if (profile != null)
+        {
+            editNickname = profile.Nickname;
+        }
+    }
+
+    private async Task UpdateNickname()
+    {
+        if (string.IsNullOrWhiteSpace(editNickname))
+        {
+            nicknameError = "Nickname cannot be empty.";
+            return;
+        }
+
+        isUpdating = true;
+        nicknameError = "";
+        var success = await AuthApi.UpdateProfileAsync(editNickname);
+        if (success)
+        {
+            profile = new ProfileResponse(profile!.Id, editNickname);
+        }
+        else
+        {
+            nicknameError = "Nickname update failed. It might be already taken.";
+        }
+        isUpdating = false;
+    }
+
+    private async Task ChangePassword()
+    {
+        if (string.IsNullOrWhiteSpace(currentPassword) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            passwordMessage = "Please fill in all fields.";
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            passwordMessage = "New passwords do not match.";
+            return;
+        }
+
+        isChangingPassword = true;
+        passwordMessage = "";
+        var success = await AuthApi.ChangePasswordAsync(currentPassword, newPassword);
+        if (success)
+        {
+            passwordMessage = "Password changed successfully.";
+            currentPassword = "";
+            newPassword = "";
+            confirmPassword = "";
+        }
+        else
+        {
+            passwordMessage = "Failed to change password. Check your current password.";
+        }
+        isChangingPassword = false;
+    }
+}

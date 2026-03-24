@@ -1,0 +1,98 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<nav class="navbar navbar-expand-md py-2 shadow-sm" style="background-color: var(--bg-card); border-bottom: 1px solid var(--border);">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold text-primary" href="">JobBoard</a>
+        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="@NavMenuCssClass navbar-collapse" @onclick="CollapseNavMenu">
+            <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <i class="bi bi-house-door-fill me-1"></i> Home
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="weather">
+                        <i class="bi bi-cloud-sun-fill me-1"></i> Weather
+                    </NavLink>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-md-0 d-flex align-items-center">
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="profile">
+                                <i class="bi bi-person-fill me-1"></i> @nickname
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="login">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                            </NavLink>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+                <li class="nav-item ms-md-3 mt-2 mt-md-0">
+                    <button class="btn theme-toggle" @onclick="ToggleTheme" @onclick:stopPropagation="true">
+                        @if (isDarkMode)
+                        {
+                            <i class="bi bi-sun-fill text-warning me-1"></i> @:Light
+                        }
+                        else
+                        {
+                            <i class="bi bi-moon-fill text-primary me-1"></i> @:Dark
+                        }
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool collapseNavMenu = true;
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private bool isDarkMode = true;
+    private string nickname = "Profile";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var theme = await JSRuntime.InvokeAsync<string>("themeManager.getTheme");
+            isDarkMode = theme == "dark";
+            StateHasChanged();
+        }
+
+        // Загружаем ник из состояния аутентификации (только если пользователь авторизован)
+        if (AuthState != null)
+        {
+            var state = await AuthState;
+            var user = state.User;
+            if (user.Identity is { IsAuthenticated: true })
+            {
+                nickname = user.FindFirst("Nickname")?.Value ?? "Profile";
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+    private void CollapseNavMenu() => collapseNavMenu = true;
+
+    private async Task ToggleTheme()
+    {
+        isDarkMode = !isDarkMode;
+        var theme = isDarkMode ? "dark" : "light";
+        await JSRuntime.InvokeVoidAsync("themeManager.setTheme", theme);
+    }
+}

@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: jobboard-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: jobboarddb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data # Decouples your data from the container!
+    networks:
+      - jobboard-network
+
+  redis:
+    image: redis:latest
+    container_name: jobboard-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - jobboard-network
+
+  apiservice:
+    build:
+      context: .
+      dockerfile: JobBoard.ApiService/Dockerfile
+    container_name: jobboard-api
+    depends_on:
+      - postgres
+    environment:
+      - ConnectionStrings__jobboarddb=Host=postgres;Port=5432;Database=jobboarddb;Username=postgres;Password=postgres-password
+    networks:
+      - jobboard-network
+
+  webfrontend:
+    build:
+      context: .
+      dockerfile: JobBoard.Web/Dockerfile
+    container_name: jobboard-web
+    depends_on:
+      - apiservice
+      - redis
+    ports:
+      - "8080:80"
+    networks:
+      - jobboard-network
+
+volumes:
+  pg_data: # Persisted Volume
+
+networks:
+  jobboard-network:
+    driver: bridge

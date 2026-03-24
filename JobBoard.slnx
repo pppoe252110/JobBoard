@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="JobBoard.ApiService/JobBoard.ApiService.csproj" />
+  <Project Path="JobBoard.AppHost/JobBoard.AppHost.csproj" />
+  <Project Path="JobBoard.ServiceDefaults/JobBoard.ServiceDefaults.csproj" />
+  <Project Path="JobBoard.Tests/JobBoard.Tests.csproj" />
+  <Project Path="JobBoard.Web/JobBoard.Web.csproj" />
+</Solution>
