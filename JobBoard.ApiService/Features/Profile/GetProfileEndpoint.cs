@@ -18,6 +18,13 @@ public class GetProfileEndpoint : EndpointWithoutRequest<ProfileResponse>
 
     public override async Task HandleAsync(CancellationToken ct)
     {
+        var cookieHeader = HttpContext.Request.Headers.Cookie.ToString();
+        Console.WriteLine($"[API Received] Cookies: {cookieHeader}");
+        foreach (var claim in User.Claims)
+        {
+            Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
+        }
+
         var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
         if (!Guid.TryParse(userIdClaim, out var userId))
         {

@@ -24,17 +24,7 @@ public class AuthApiClient(HttpClient httpClient)
 
     public async Task<ProfileResponse?> GetProfileAsync()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/profile");
-
-        // This tells the browser to include cookies
-        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
-
-        var response = await httpClient.SendAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
-            return await response.Content.ReadFromJsonAsync<ProfileResponse>();
-        }
-        return null;
+        return await httpClient.GetFromJsonAsync<ProfileResponse>("/profile");
     }
 
     public async Task<bool> UpdateProfileAsync(string nickname)

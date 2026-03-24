@@ -85,19 +85,14 @@ app.MapPost("/auth/login-callback", async (
     {
         var claims = new List<Claim>
         {
+            new Claim("UserId", loginResult.UserId.ToString()),
             new Claim(ClaimTypes.NameIdentifier, loginResult.UserId.ToString()),
-            new Claim(ClaimTypes.Name, loginResult.Nickname),
-            new Claim("Nickname", loginResult.Nickname),
+            new Claim(ClaimTypes.Role, "User"),
             new Claim(ClaimTypes.Email, loginResult.Email)
         };
 
-        var identity = new ClaimsIdentity(
-            claims,
-            CookieAuthenticationDefaults.AuthenticationScheme);
-
-        await context.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity));
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
 
         return Results.Redirect("/");
     }
