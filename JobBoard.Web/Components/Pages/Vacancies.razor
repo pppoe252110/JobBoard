@@ -1,0 +1,99 @@
+﻿@page "/vacancies"
+
+@using JobBoard.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject VacancyApiClient VacancyApi
+@inject IJSRuntime JSRuntime
+@inject AuthApiClient AuthApi
+@inject ResumeApiClient ResumeApi
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@rendermode InteractiveServer
+<PageTitle>Vacancies</PageTitle>
+
+<h1>Job Vacancies</h1>
+
+@if (vacancies == null)
+{
+    <p>Loading...</p>
+}
+else if (!vacancies.Any())
+{
+    <p>No vacancies found.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var vacancy in vacancies)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">@vacancy.Title</h5>
+                        <p class="card-text text-muted">@Truncate(vacancy.DescriptionMarkdown, 150)</p>
+                        @if (vacancy.SalaryFrom.HasValue || vacancy.SalaryTo.HasValue)
+                        {
+                            <p class="card-text fw-bold">Salary: @FormatSalary(vacancy.SalaryFrom, vacancy.SalaryTo)</p>
+                        }
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button class="btn btn-primary" @onclick="() => Apply(vacancy.Id)">Apply</button>
+                            <small class="text-muted">Posted @vacancy.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<VacancyResponse>? vacancies;
+    private List<ResumeResponse>? userResumes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        vacancies = await VacancyApi.GetAllAsync();
+        // If user is logged in, fetch their resumes for apply dialog
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            userResumes = await ResumeApi.GetUserResumesAsync();
+        }
+    }
+
+    private async Task Apply(Guid vacancyId)
+    {
+        if (userResumes == null || !userResumes.Any())
+        {
+            // Not logged in or no resumes
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        // For simplicity, just use the first resume. In real app, show a modal to choose.
+        var resumeId = userResumes.First().Id;
+        var response = await VacancyApi.ApplyAsync(vacancyId, resumeId);
+        if (response.IsSuccessStatusCode)
+        {
+            // Show success message (simplified)
+            await JSRuntime.InvokeVoidAsync("alert", "Application submitted!");
+        }
+        else
+        {
+            // Handle error
+        }
+    }
+
+    private string Truncate(string text, int maxLength) =>
+        text.Length <= maxLength ? text : text[..maxLength] + "...";
+
+    private string FormatSalary(decimal? from, decimal? to)
+    {
+        if (from.HasValue && to.HasValue) return $"{from:N0} - {to:N0}";
+        if (from.HasValue) return $"From {from:N0}";
+        if (to.HasValue) return $"Up to {to:N0}";
+        return "Not specified";
+    }
+}

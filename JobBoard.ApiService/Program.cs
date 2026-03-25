@@ -5,11 +5,20 @@ using JobBoard.ApiService.Common.PasswordHashing;
 using JobBoard.ApiService.Data;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<JobPortalDbContext>("jobboarddb");
+
+var connectionString = builder.Configuration.GetConnectionString("jobboarddb");
+
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+dataSourceBuilder.EnableDynamicJson();
+
+var dataSource = dataSourceBuilder.Build();
+builder.Services.AddDbContext<JobPortalDbContext>(options =>
+    options.UseNpgsql(dataSource));
 
 //Cookie Setup and Data Protection
 var sharedKeyPath = Path.Combine(Path.GetTempPath(), "jobboard-auth-keys");
@@ -43,23 +52,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
-
 app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
 
 app.MapDefaultEndpoints();
 
@@ -75,8 +68,3 @@ if (app.Environment.IsDevelopment())
         await application.Database.MigrateAsync();
 }
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

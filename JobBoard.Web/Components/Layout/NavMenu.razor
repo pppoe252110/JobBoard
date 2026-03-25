@@ -1,5 +1,7 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿@using JobBoard.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@inject ThemeService ThemeService
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
@@ -14,11 +16,6 @@
                 <li class="nav-item">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                         <i class="bi bi-house-door-fill me-1"></i> Home
-                    </NavLink>
-                </li>
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="weather">
-                        <i class="bi bi-cloud-sun-fill me-1"></i> Weather
                     </NavLink>
                 </li>
             </ul>
@@ -40,14 +37,14 @@
                     </NotAuthorized>
                 </AuthorizeView>
                 <li class="nav-item ms-md-3 mt-2 mt-md-0">
-                    <button class="btn theme-toggle" @onclick="ToggleTheme" @onclick:stopPropagation="true">
-                        @if (isDarkMode)
+                    <button class="btn border-0" @onclick="ToggleTheme">
+                        @if (ThemeService.IsDarkMode)
                         {
-                            <i class="bi bi-sun-fill text-warning me-1"></i> @:Light
+                            <i class="bi bi-sun-fill text-warning me-1"></i>
                         }
                         else
                         {
-                            <i class="bi bi-moon-fill text-primary me-1"></i> @:Dark
+                            <i class="bi bi-moon-fill text-primary me-1"></i>
                         }
                     </button>
                 </li>
@@ -61,28 +58,27 @@
 
     private bool collapseNavMenu = true;
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-    private bool isDarkMode = true;
     private string nickname = "Profile";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            // Sync the C# service state with LocalStorage on initial load
             var theme = await JSRuntime.InvokeAsync<string>("themeManager.getTheme");
-            isDarkMode = theme == "dark";
-            StateHasChanged();
-        }
-
-        // Загружаем ник из состояния аутентификации (только если пользователь авторизован)
-        if (AuthState != null)
-        {
-            var state = await AuthState;
-            var user = state.User;
-            if (user.Identity is { IsAuthenticated: true })
+            ThemeService.SetTheme(theme == "dark");
+            
+            if (AuthState != null)
             {
-                nickname = user.FindFirst("Nickname")?.Value ?? "Profile";
-                StateHasChanged();
+                var state = await AuthState;
+                var user = state.User;
+                if (user.Identity is { IsAuthenticated: true })
+                {
+                    nickname = user.FindFirst("Nickname")?.Value ?? user.Identity.Name ?? "Profile";
+                }
             }
+
+            StateHasChanged();
         }
     }
 
@@ -91,8 +87,11 @@
 
     private async Task ToggleTheme()
     {
-        isDarkMode = !isDarkMode;
-        var theme = isDarkMode ? "dark" : "light";
+        // 1. Flip the state inside the ThemeService
+        ThemeService.SetTheme(!ThemeService.IsDarkMode);
+        
+        // 2. Pass the correct string to your JS manager
+        var theme = ThemeService.IsDarkMode ? "dark" : "light";
         await JSRuntime.InvokeVoidAsync("themeManager.setTheme", theme);
     }
 }

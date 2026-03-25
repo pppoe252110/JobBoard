@@ -1,0 +1,160 @@
+﻿@using JobBoard.Web.Services
+@using Markdig
+
+@inject VacancyApiClient VacancyApi
+@inject IJSRuntime JSRuntime
+
+@rendermode InteractiveServer
+
+<div class="modal fade" id="vacancyModal" tabindex="-1" aria-labelledby="vacancyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="vacancyModalLabel">@(IsEdit ? "Edit Vacancy" : "Create Vacancy")</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-control" @bind="model.Title" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description (Markdown)</label>
+                    <textarea class="form-control" rows="6"
+                              @bind="model.DescriptionMarkdown"
+                                  @bind:event="oninput">
+                    </textarea>
+                    <div class="mt-2">
+                        <small class="text-muted">Supports Markdown formatting. Preview:</small>
+                            <div class="border p-2 mt-1 bg-body-tertiary markdown-preview">
+                                @((MarkupString)Markdig.Markdown.ToHtml(model.DescriptionMarkdown ?? "", pipeline))
+                            </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Salary From</label>
+                        <input type="number" class="form-control" @bind="model.SalaryFrom" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Salary To</label>
+                        <input type="number" class="form-control" @bind="model.SalaryTo" />
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger">@ErrorMessage</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@isSaving">
+                    @(isSaving ? "Saving..." : "Save")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public VacancyResponse? ExistingVacancy { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+
+    private MarkupString markup;
+    private MarkdownPipeline pipeline;
+    private VacancyFormModel model = new();
+    private bool isSaving;
+    private string? ErrorMessage;
+    private bool IsEdit => ExistingVacancy != null;
+
+    protected override void OnInitialized()
+    {
+        pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions().UseEmojiAndSmiley().UseBootstrap()
+            .Build();
+
+        if (IsEdit && ExistingVacancy != null)
+        {
+            model = new VacancyFormModel
+            {
+                Id = ExistingVacancy.Id,
+                Title = ExistingVacancy.Title,
+                DescriptionMarkdown = ExistingVacancy.DescriptionMarkdown,
+                SalaryFrom = ExistingVacancy.SalaryFrom,
+                SalaryTo = ExistingVacancy.SalaryTo
+            };
+        }
+
+        UpdatePreview();
+    }
+
+    private void UpdatePreview()
+    {
+        markup = (MarkupString)Markdig.Markdown.ToHtml(model.DescriptionMarkdown, pipeline);
+    }
+
+    private async Task Save()
+    {
+        isSaving = true;
+        ErrorMessage = null;
+
+        try
+        {
+            HttpResponseMessage response;
+            if (IsEdit)
+            {
+                var request = new UpdateVacancyRequest(
+                    model.Id!.Value,
+                    model.Title,
+                    model.DescriptionMarkdown,
+                    model.SalaryFrom,
+                    model.SalaryTo
+                );
+                response = await VacancyApi.UpdateAsync(model.Id!.Value, request);
+            }
+            else
+            {
+                var request = new CreateVacancyRequest(
+                    model.Title,
+                    model.DescriptionMarkdown,
+                    model.SalaryFrom,
+                    model.SalaryTo
+                );
+                response = await VacancyApi.CreateAsync(request);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await OnSuccess.InvokeAsync();
+                await CloseModal();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Error: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await JSRuntime.InvokeVoidAsync("hideModal", "#vacancyModal"); // or "#resumeModal"
+    }
+
+    public class VacancyFormModel
+    {
+        public Guid? Id { get; set; }
+        public string Title { get; set; } = "";
+        public string DescriptionMarkdown { get; set; } = "";
+        public decimal? SalaryFrom { get; set; }
+        public decimal? SalaryTo { get; set; }
+    }
+}

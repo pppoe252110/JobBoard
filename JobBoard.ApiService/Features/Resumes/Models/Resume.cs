@@ -1,15 +1,15 @@
-﻿namespace JobBoard.ApiService.Features.Resumes.Models
-{
-    public class Resume
-    {
-        public Guid Id { get; set; }
-        public Guid UserId { get; set; } // Логическая связь, без ForeignKey
-        public string Title { get; set; } = string.Empty;
-        public string[] Skills { get; set; } = Array.Empty<string>();
-        public bool IsVisible { get; set; }
-        public string AboutMe { get; set; } = string.Empty;
+﻿using JobBoard.ApiService.Features.Resumes.Models;
 
-        // Навигационное свойство внутри одного модуля
-        public ICollection<WorkExperience> WorkExperiences { get; set; } = new List<WorkExperience>();
-    }
+public class Resume
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public List<ContactMethodDto> ContactMethods { get; set; } = new();
+    public SkillsMatrix Skills { get; set; } = new();
+    public bool IsVisible { get; set; }
+    public string AboutMe { get; set; } = string.Empty;
+    public ICollection<WorkExperience> WorkExperiences { get; set; } = new List<WorkExperience>();
 }

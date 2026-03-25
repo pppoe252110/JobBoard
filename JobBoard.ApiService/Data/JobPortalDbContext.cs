@@ -20,7 +20,7 @@ namespace JobBoard.ApiService.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Identity Schema (identity.users)
+            // Identity Schema
             modelBuilder.Entity<User>(b =>
             {
                 b.ToTable("users", "identity");
@@ -28,30 +28,38 @@ namespace JobBoard.ApiService.Data
                 b.HasIndex(x => x.Email).IsUnique();
             });
 
-            // Resumes Schema (resumes.resumes)
+            // Resume
             modelBuilder.Entity<Resume>(b =>
             {
                 b.ToTable("resumes", "resumes");
                 b.HasKey(x => x.Id);
 
-                // Specifically for PostgreSQL JSONB support
-                b.Property(x => x.Skills).HasColumnType("jsonb");
+                // Configure Skills as JSON and explicitly map its nested objects
+                b.OwnsOne(x => x.Skills, sb =>
+                {
+                    sb.ToJson(); // Tells EF that the Skills object is JSON
+
+                    // Explicitly define that Languages is a collection inside this JSON
+                    sb.OwnsMany(s => s.Languages);
+                });
+
+                b.Property(x => x.ContactMethods).HasColumnType("jsonb");
 
                 b.HasMany(x => x.WorkExperiences)
-                 .WithOne(x => x.Resume)
-                 .HasForeignKey(x => x.ResumeId)
-                 .OnDelete(DeleteBehavior.Cascade);
+                    .WithOne(x => x.Resume)
+                    .HasForeignKey(x => x.ResumeId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // WorkExperiences Schema (resumes.work_experiences)
+            // WorkExperience
             modelBuilder.Entity<WorkExperience>(b =>
             {
-                // Note: Standardized to "work_experiences" using snake_case (Postgres convention)
                 b.ToTable("work_experiences", "resumes");
                 b.HasKey(x => x.Id);
+                b.Property(x => x.Technologies).HasColumnType("jsonb");
             });
 
-            // Vacancies Schema (vacancies.vacancies)
+            // Vacancy
             modelBuilder.Entity<Vacancy>(b =>
             {
                 b.ToTable("vacancies", "vacancies");
@@ -60,7 +68,7 @@ namespace JobBoard.ApiService.Data
                 b.Property(x => x.SalaryTo).HasColumnType("decimal(18,2)");
             });
 
-            // Applications Schema (responses.applications)
+            // Application
             modelBuilder.Entity<Application>(b =>
             {
                 b.ToTable("applications", "responses");

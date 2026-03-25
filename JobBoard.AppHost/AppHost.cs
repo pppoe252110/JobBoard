@@ -4,7 +4,6 @@ var cache = builder.AddRedis("cache");
 
 var postgresPassword = builder.AddParameter("postgres-password", secret: true);
 
-// Chain .WithPortBinding to lock the host port to 5432
 var postgres = builder.AddPostgres("postgres", password: postgresPassword)
                       .WithDataVolume("pgdata")
                       .WithHostPort(7777);

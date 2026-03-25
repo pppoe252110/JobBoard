@@ -1,11 +1,14 @@
 ﻿@page "/profile"
-
 @using System.Security.Claims
+@using JobBoard.Web.Components.Pages.Forms
 @using JobBoard.Web.Services
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 
 @inject AuthApiClient AuthApi
+@inject VacancyApiClient VacancyApi
+@inject ResumeApiClient ResumeApi
+@inject IJSRuntime JsRuntime
 
 @attribute [Authorize]
 
@@ -16,55 +19,154 @@
 <div class="container py-4">
     <h1 class="fw-bold mb-4">Profile</h1>
 
-    @if (profile == null)
-    {
-        <p>Loading...</p>
-    }
-    else
-    {
-        <div class="card shadow-sm" style="background-color: var(--bg-card);">
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Nickname</label>
-                    <div class="d-flex gap-2">
-                        <input type="text" class="form-control" @bind="editNickname" />
-                        <button class="btn btn-primary" @onclick="UpdateNickname" disabled="@isUpdating">
-                            @(isUpdating ? "Saving..." : "Save")
+    <ul class="nav nav-tabs" id="profileTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Account Info</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="vacancies-tab" data-bs-toggle="tab" data-bs-target="#vacancies" type="button" role="tab">My Vacancies</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="resumes-tab" data-bs-toggle="tab" data-bs-target="#resumes" type="button" role="tab">My Resumes</button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-4">
+        <!-- Account Info Tab -->
+        <div class="tab-pane fade show active" id="info" role="tabpanel">
+            @if (profile == null)
+            {
+                <p>Loading...</p>
+            }
+            else
+            {
+                <div class="card shadow-sm" style="background-color: var(--bg-card);">
+                    <div class="card-body">
+                        <!-- same nickname and password change as before -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nickname</label>
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control" @bind="editNickname" />
+                                <button class="btn btn-primary" @onclick="UpdateNickname" disabled="@isUpdating">
+                                    @(isUpdating ? "Saving..." : "Save")
+                                </button>
+                            </div>
+                            @if (!string.IsNullOrEmpty(nicknameError))
+                            {
+                                <div class="text-danger mt-1">@nicknameError</div>
+                            }
+                        </div>
+
+                        <hr />
+
+                        <h5>Change Password</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Current Password</label>
+                            <input type="password" class="form-control" @bind="currentPassword" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="password" class="form-control" @bind="newPassword" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" @bind="confirmPassword" />
+                        </div>
+                        <button class="btn btn-outline-primary" @onclick="ChangePassword" disabled="@isChangingPassword">
+                            @(isChangingPassword ? "Changing..." : "Change Password")
                         </button>
+                        @if (!string.IsNullOrEmpty(passwordMessage))
+                        {
+                            <div class="alert alert-info mt-3">@passwordMessage</div>
+                        }
                     </div>
-                    @if (!string.IsNullOrEmpty(nicknameError))
+                </div>
+            }
+        </div>
+
+        <!-- My Vacancies Tab -->
+        <div class="tab-pane fade" id="vacancies" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Your Vacancies</h3>
+                <button class="btn btn-primary" @onclick="ShowCreateVacancyModal">Create New Vacancy</button>
+            </div>
+            @if (userVacancies == null)
+            {
+                <p>Loading...</p>
+            }
+            else if (!userVacancies.Any())
+            {
+                <p>You haven't created any vacancies yet.</p>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var vacancy in userVacancies)
                     {
-                        <div class="text-danger mt-1">@nicknameError</div>
+                        <div class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5>@vacancy.Title</h5>
+                                <p class="mb-1">@Truncate(vacancy.DescriptionMarkdown, 100)</p>
+                                <small>@FormatSalary(vacancy.SalaryFrom, vacancy.SalaryTo) | Posted @vacancy.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditVacancy(vacancy)">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteVacancy(vacancy.Id)">Delete</button>
+                            </div>
+                        </div>
                     }
                 </div>
-
-                <hr />
-
-                <h5>Change Password</h5>
-                <div class="mb-3">
-                    <label class="form-label">Current Password</label>
-                    <input type="password" class="form-control" @bind="currentPassword" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">New Password</label>
-                    <input type="password" class="form-control" @bind="newPassword" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Confirm New Password</label>
-                    <input type="password" class="form-control" @bind="confirmPassword" />
-                </div>
-                <button class="btn btn-outline-primary" @onclick="ChangePassword" disabled="@isChangingPassword">
-                    @(isChangingPassword ? "Changing..." : "Change Password")
-                </button>
-                @if (!string.IsNullOrEmpty(passwordMessage))
-                {
-                    <div class="alert alert-info mt-3">@passwordMessage</div>
-                }
-            </div>
+            }
         </div>
-    }
+
+        <!-- My Resumes Tab -->
+        <div class="tab-pane fade" id="resumes" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Your Resumes</h3>
+                <button class="btn btn-primary" @onclick="ShowCreateResumeModal">Create New Resume</button>
+            </div>
+            @if (userResumes == null)
+            {
+                <p>Loading...</p>
+            }
+            else if (!userResumes.Any())
+            {
+                <p>You haven't created any resumes yet.</p>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var resume in userResumes)
+                    {
+                        <div class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5>@resume.Title</h5>
+                                <p class="mb-1">@Truncate(resume.AboutMe, 100)</p>
+                                <div>
+                                    @foreach (var skill in resume.Skills.Languages.Select(l => l.Name).Concat(resume.Skills.Frameworks))
+                                    {
+                                        <span class="badge bg-secondary me-1">@skill</span>
+                                    }
+                                </div>
+                                <small>Visibility: @(resume.IsVisible ? "Public" : "Hidden")</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditResume(resume)">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteResume(resume.Id)">Delete</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
+<!-- Modals -->
+<VacancyForm ExistingVacancy="@editingVacancy" OnSuccess="RefreshVacancies" />
+<ResumeForm ExistingResume="@editingResume" OnSuccess="RefreshResumes" />
+
+<!-- Modals for creating/editing vacancies and resumes – you can implement these as separate components -->
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
@@ -79,13 +181,19 @@
     private bool isChangingPassword;
     private string? passwordMessage;
 
+    private List<VacancyResponse>? userVacancies;
+    private List<ResumeResponse>? userResumes;
+
+    private VacancyResponse? editingVacancy;
+    private ResumeResponse? editingResume;
+
     protected override async Task OnInitializedAsync()
     {
         profile = await AuthApi.GetProfileAsync();
-        if (profile != null)
-        {
-            editNickname = profile.Nickname;
-        }
+        if (profile != null) editNickname = profile.Nickname;
+
+        userVacancies = await VacancyApi.GetUserVacanciesAsync();
+        userResumes = await ResumeApi.GetUserResumesAsync();
     }
 
     private async Task UpdateNickname()
@@ -140,4 +248,78 @@
         }
         isChangingPassword = false;
     }
+
+    private async Task DeleteVacancy(Guid id)
+    {
+        if (await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this vacancy?"))
+        {
+            var response = await VacancyApi.DeleteAsync(id);
+            if (response.IsSuccessStatusCode)
+            {
+                userVacancies = await VacancyApi.GetUserVacanciesAsync();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task DeleteResume(Guid id)
+    {
+        if (await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this resume?"))
+        {
+            var response = await ResumeApi.DeleteAsync(id);
+            if (response.IsSuccessStatusCode)
+            {
+                userResumes = await ResumeApi.GetUserResumesAsync();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ShowCreateVacancyModal()
+    {
+        editingVacancy = null;
+        JsRuntime.InvokeVoidAsync("showModal", "#vacancyModal");
+    }
+
+    private void EditVacancy(VacancyResponse vacancy)
+    {
+        editingVacancy = vacancy;
+        JsRuntime.InvokeVoidAsync("showModal", "#vacancyModal");
+    }
+
+    private void ShowCreateResumeModal()
+    {
+        editingResume = null;
+        JsRuntime.InvokeVoidAsync("showModal", "#resumeModal");
+    }
+
+    private void EditResume(ResumeResponse resume)
+    {
+        editingResume = resume;
+        JsRuntime.InvokeVoidAsync("showModal", "#resumeModal");
+    }
+
+    private async Task RefreshVacancies()
+    {
+        userVacancies = await VacancyApi.GetUserVacanciesAsync();
+        StateHasChanged();
+    }
+
+    private async Task RefreshResumes()
+    {
+        userResumes = await ResumeApi.GetUserResumesAsync();
+        StateHasChanged();
+    }
+
+    private string Truncate(string text, int maxLength) =>
+        text.Length <= maxLength ? text : text[..maxLength] + "...";
+
+    private string FormatSalary(decimal? from, decimal? to) =>
+        (from, to) switch
+        {
+            (null, null) => "Salary not specified",
+            (null, decimal t) => $"Up to {t:N0}",
+            (decimal f, null) => $"From {f:N0}",
+            (decimal f, decimal t) => $"{f:N0} - {t:N0}"
+        };
 }

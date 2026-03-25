@@ -20,7 +20,8 @@ builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddHttpContextAccessor();
 
-// Cookie forwarding handler
+// DI
+builder.Services.AddScoped<ThemeService>();
 builder.Services.AddTransient<CookieDelegatingHandler>();
 
 // DataProtection (shared between API + Web)
@@ -35,12 +36,15 @@ builder.Services.AddHttpClient<AuthApiClient>(client =>
 })
 .AddHttpMessageHandler<CookieDelegatingHandler>();
 
-builder.Services.AddHttpClient<WeatherApiClient>(client =>
+builder.Services.AddHttpClient<VacancyApiClient>(client =>
 {
     client.BaseAddress = new Uri("https+http://apiservice");
-})
-.AddHttpMessageHandler<CookieDelegatingHandler>();
+}).AddHttpMessageHandler<CookieDelegatingHandler>();
 
+builder.Services.AddHttpClient<ResumeApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https+http://apiservice");
+}).AddHttpMessageHandler<CookieDelegatingHandler>();
 // Auth
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

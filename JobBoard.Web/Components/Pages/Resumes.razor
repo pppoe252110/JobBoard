@@ -1,0 +1,54 @@
+﻿@page "/resumes"
+
+@using JobBoard.Web.Services
+
+@inject ResumeApiClient ResumeApi
+
+@rendermode InteractiveServer
+
+<PageTitle>Resumes</PageTitle>
+
+<h1>Candidate Resumes</h1>
+
+@if (resumes == null)
+{
+    <p>Loading...</p>
+}
+else if (!resumes.Any())
+{
+    <p>No resumes found.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var resume in resumes)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">@resume.Title</h5>
+                        <p class="card-text">@Truncate(resume.AboutMe, 100)</p>
+                        <div>
+                            @foreach (var skill in resume.Skills.Languages.Select(l => l.Name).Concat(resume.Skills.Frameworks))
+                            {
+                                <span class="badge bg-secondary me-1">@skill</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<ResumeResponse>? resumes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        resumes = await ResumeApi.GetAllAsync();
+    }
+
+    private string Truncate(string text, int maxLength) =>
+        text.Length <= maxLength ? text : text[..maxLength] + "...";
+}
