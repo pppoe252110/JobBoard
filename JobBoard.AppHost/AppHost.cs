@@ -8,10 +8,13 @@ var postgres = builder.AddPostgres("postgres", password: postgresPassword)
                       .WithDataVolume("pgdata")
                       .WithHostPort(7777);
 
+var meilisearch = builder.AddMeilisearch("meilisearch").WithDataVolume("meili_data");
+
 var db = postgres.AddDatabase("jobboarddb");
 
 var apiService = builder.AddProject<Projects.JobBoard_ApiService>("apiservice")
     .WithReference(db)
+    .WithReference(meilisearch)
     .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.JobBoard_Web>("webfrontend")

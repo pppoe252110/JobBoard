@@ -11,19 +11,14 @@
 else
 {
     <div class="container py-4">
-        <div class="card shadow-sm border-0 mb-4" style="background-color: var(--bg-card);">
+        <div class="card shadow-sm border mb-4">
             <div class="card-body d-flex justify-content-between align-items-start p-4">
                 <div>
                     <h1 class="fw-bold mb-1">@resume.FullName</h1>
                     <h2 class="h4 text-muted mb-3">@resume.Title</h2>
-                    <span class="badge" style="background-color: var(--tag-success-bg); color: var(--tag-success-text);">
-                        <i class="bi bi-record-circle-fill me-1 pulse"></i> Open to work
-                    </span>
+                    <span class="badge bg-success">Open to work</span>
                 </div>
                 <div class="d-flex align-items-center gap-3">
-                    <div class="ai-match-gauge" title="AI Match Score">
-                        <span>85%</span>
-                    </div>
                     <button class="btn btn-outline-primary"><i class="bi bi-download me-2"></i>PDF</button>
                 </div>
             </div>
@@ -31,54 +26,64 @@ else
 
         <div class="row">
             <div class="col-md-4 mb-4">
-                <div class="card shadow-sm border-0 h-100" style="background-color: var(--bg-card);">
+                <div class="card shadow-sm border h-100">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-3">Contact Information</h5>
                         <ul class="list-unstyled text-muted">
                             <li class="mb-2"><i class="bi bi-geo-alt me-2"></i> @resume.Location</li>
+                            @if (resume.ContactMethods != null)
+                            {
+                                @foreach (var contact in resume.ContactMethods)
+                                {
+                                    <li class="mb-2">
+                                        <i class="bi bi-@(GetContactIcon(contact.Type)) me-2"></i>
+                                        @contact.Value
+                                    </li>
+                                }
+                            }
                         </ul>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-8">
-                <div class="card shadow-sm border-0 mb-4" style="background-color: var(--bg-card);">
+                <div class="card shadow-sm border mb-4">
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-between">
-                            <h5 class="fw-bold mb-3">About</h5>
-                            <button class="btn btn-sm btn-link text-decoration-none"><i class="bi bi-magic me-1"></i> Refine with AI</button>
-                        </div>
-                        <p class="text-muted" style="white-space: pre-wrap;">@resume.AboutMe</p>
+                        <p class="text-muted">@resume.AboutMe</p>
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0 mb-4" style="background-color: var(--bg-card);">
+                <div class="card shadow-sm border mb-4">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-3">Skills</h5>
                         <h6 class="text-muted mb-2 mt-3">Languages</h6>
                         <div>
                             @foreach (var lang in resume.Skills.Languages)
                             {
-                                <span class="badge bg-secondary me-1 mb-1 p-2">@lang</span>
+                                <span class="badge rounded-pill border px-3 py-2 me-1 mb-1 shadow-sm">
+                                    <i class="bi bi-translate me-1 opacity-75"></i>
+                                    @lang.Name
+                                    <span class="ms-1 opacity-50 fw-normal">| @lang.Level</span>
+                                </span>
                             }
                         </div>
                         <h6 class="text-muted mb-2 mt-3">Frameworks & Tools</h6>
                         <div>
-                            @foreach (var fw in resume.Skills.Frameworks)
+                            @foreach (var fw in resume.Skills.HardSkills)
                             {
-                                <span class="badge me-1 mb-1 p-2" style="background-color: var(--tag-info-bg); color: var(--tag-info-text);">@fw</span>
+                                <span class="badge bg-secondary me-1 mb-1 p-2">@fw</span>
                             }
                         </div>
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0 mb-4" style="background-color: var(--bg-card);">
+                <div class="card shadow-sm border mb-4">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-4">Experience</h5>
-                        <div class="experience-timeline">
+                        <div class="list-group">
                             @foreach (var we in resume.WorkExperiences.OrderByDescending(x => x.StartDate))
                             {
-                                <div class="timeline-item">
+                                <div class="list-group-item">
                                     <h6 class="fw-bold mb-1">@we.Position</h6>
                                     <div class="text-muted small mb-2">
                                         <i class="bi bi-building me-1"></i> @we.CompanyName &bull;
@@ -104,19 +109,34 @@ else
 @code {
     [Parameter]
     public Guid Id { get; set; }
-    
+
     private ResumeResponse? resume;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
             resume = await ResumeApi.GetByIdAsync(Id);
+            Console.WriteLine("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         }
         catch (Exception ex)
         {
-            // Handle 404 or network errors appropriately
             Console.WriteLine($"Error fetching resume: {ex.Message}");
         }
+    }
+
+    private string GetContactIcon(string type)
+    {
+        return type.ToLowerInvariant() switch
+        {
+            "email" => "envelope",
+            "phone" => "telephone",
+            "website" => "globe",
+            "linkedin" => "linkedin",
+            "github" => "github",
+            "twitter" => "twitter",
+            _ => "link"
+        };
     }
 }

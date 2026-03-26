@@ -59,101 +59,7 @@ namespace JobBoard.ApiService.Migrations
                     b.ToTable("users", "identity");
                 });
 
-            modelBuilder.Entity("JobBoard.ApiService.Features.Vacancies.Models.Vacancy", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DescriptionMarkdown")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("boolean");
-
-                    b.Property<decimal?>("SalaryFrom")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("SalaryTo")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("vacancies", "vacancies");
-                });
-
-            modelBuilder.Entity("JobBoard.ApiService.Models.Application", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("AppliedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ResumeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("VacancyId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("VacancyId", "ResumeId")
-                        .IsUnique();
-
-                    b.ToTable("applications", "responses");
-                });
-
-            modelBuilder.Entity("Resume", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AboutMe")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<List<ContactMethodDto>>("ContactMethods")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("resumes", "resumes");
-                });
-
-            modelBuilder.Entity("WorkExperience", b =>
+            modelBuilder.Entity("JobBoard.ApiService.Features.Resumes.Models.WorkExperience", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -191,13 +97,138 @@ namespace JobBoard.ApiService.Migrations
                     b.ToTable("work_experiences", "resumes");
                 });
 
+            modelBuilder.Entity("JobBoard.ApiService.Features.Vacancies.Models.Vacancy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DescriptionMarkdown")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRemote")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("SalaryFrom")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("SalaryTo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("vacancies", "vacancies");
+                });
+
+            modelBuilder.Entity("JobBoard.ApiService.Models.Application", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ResumeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("VacancyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VacancyId", "ResumeId")
+                        .IsUnique();
+
+                    b.ToTable("applications", "responses");
+                });
+
+            modelBuilder.Entity("Resume", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AboutMe")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<List<ContactMethodDto>>("ContactMethods")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<decimal?>("ExpectedSalary")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("ExperienceYears")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("resumes", "resumes");
+                });
+
+            modelBuilder.Entity("JobBoard.ApiService.Features.Resumes.Models.WorkExperience", b =>
+                {
+                    b.HasOne("Resume", "Resume")
+                        .WithMany("WorkExperiences")
+                        .HasForeignKey("ResumeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resume");
+                });
+
             modelBuilder.Entity("Resume", b =>
                 {
                     b.OwnsOne("JobBoard.ApiService.Features.Resumes.Models.SkillsMatrix", "Skills", b1 =>
                         {
                             b1.Property<Guid>("ResumeId");
 
-                            b1.PrimitiveCollection<string>("Frameworks")
+                            b1.PrimitiveCollection<string>("HardSkills")
                                 .IsRequired();
 
                             b1.HasKey("ResumeId");
@@ -237,17 +268,6 @@ namespace JobBoard.ApiService.Migrations
 
                     b.Navigation("Skills")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("WorkExperience", b =>
-                {
-                    b.HasOne("Resume", "Resume")
-                        .WithMany("WorkExperiences")
-                        .HasForeignKey("ResumeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Resume");
                 });
 
             modelBuilder.Entity("Resume", b =>

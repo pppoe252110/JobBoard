@@ -35,6 +35,8 @@ public class GetUserVacanciesEndpoint : EndpointWithoutRequest<List<VacancyRespo
                 DescriptionMarkdown = v.DescriptionMarkdown,
                 SalaryFrom = v.SalaryFrom,
                 SalaryTo = v.SalaryTo,
+                Location = v.Location,
+                IsRemote = v.IsRemote,
                 CreatedAt = v.CreatedAt,
                 IsArchived = v.IsArchived
             })

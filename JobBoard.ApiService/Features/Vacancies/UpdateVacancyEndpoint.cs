@@ -1,15 +1,21 @@
 ﻿using FastEndpoints;
+using Meilisearch;
 using JobBoard.ApiService.Data;
 using JobBoard.ApiService.Features.Vacancies.Models;
-using Microsoft.EntityFrameworkCore;
+using JobBoard.ApiService.Utils;
 
 namespace JobBoard.ApiService.Features.Vacancies;
 
 public class UpdateVacancyEndpoint : Endpoint<UpdateVacancyRequest>
 {
     private readonly JobPortalDbContext _db;
+    private readonly MeilisearchClient _meilisearchClient;
 
-    public UpdateVacancyEndpoint(JobPortalDbContext db) => _db = db;
+    public UpdateVacancyEndpoint(JobPortalDbContext db, MeilisearchClient meilisearchClient)
+    {
+        _db = db;
+        _meilisearchClient = meilisearchClient;
+    }
 
     public override void Configure()
     {
@@ -44,8 +50,15 @@ public class UpdateVacancyEndpoint : Endpoint<UpdateVacancyRequest>
         vacancy.DescriptionMarkdown = req.DescriptionMarkdown;
         vacancy.SalaryFrom = req.SalaryFrom;
         vacancy.SalaryTo = req.SalaryTo;
+        vacancy.Location = req.Location ?? string.Empty;
+        vacancy.IsRemote = req.IsRemote;
 
         await _db.SaveChangesAsync(ct);
-        await Send.OkAsync(ct);
+
+        var index = _meilisearchClient.Index("vacancies");
+        var taskInfo = await index.AddDocumentsAsync([MeilisearchConverter.ConvertVacancy(vacancy)], cancellationToken: ct);
+        await index.WaitForTaskAsync(taskInfo.TaskUid, cancellationToken: ct);
+
+        await Send.NoContentAsync(ct);
     }
 }

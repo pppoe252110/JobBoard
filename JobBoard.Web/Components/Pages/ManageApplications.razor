@@ -1,0 +1,97 @@
+﻿@page "/vacancy/{VacancyId:guid}/manage"
+@using JobBoard.Web.Services
+@inject VacancyApiClient VacancyApi
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Manage Applications</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 fw-bold">Manage Applications</h1>
+        <a href="/profile" class="btn btn-outline-secondary">Back to Profile</a>
+    </div>
+
+    @if (applications == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!applications.Any())
+    {
+        <div class="alert alert-info shadow-sm">No applications received yet for this vacancy.</div>
+    }
+    else
+    {
+        <div class="table-responsive card shadow-sm border">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table">
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Resume Title</th>
+                        <th>Applied Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var app in applications)
+                    {
+                        <tr>
+                            <td class="fw-bold">@app.ApplicantName</td>
+                            <td>@app.ResumeTitle</td>
+                            <td>@app.AppliedAt.ToLocalTime().ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <select class="form-select form-select-sm w-auto"
+                                        value="@app.Status"
+                                        @onchange="@(e => UpdateStatus(app.Id, e.Value?.ToString() ?? "Applied"))">
+                                    <option value="Applied">Applied</option>
+                                    <option value="Review">Review</option>
+                                    <option value="Interview">Interview</option>
+                                    <option value="Offered">Offered</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </td>
+                            <td>
+                                <a href="/resume/@app.ResumeId" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i> View Resume
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid VacancyId { get; set; }
+    
+    private List<ApplicationDto>? applications;
+
+    protected override async Task OnInitializedAsync()
+    {
+        applications = await VacancyApi.GetApplicationsAsync(VacancyId);
+    }
+
+    private async Task UpdateStatus(Guid applicationId, string newStatus)
+    {
+        var response = await VacancyApi.UpdateApplicationStatusAsync(applicationId, newStatus);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            // Optimistically update the local state without requiring a full page refresh
+            var app = applications?.FirstOrDefault(a => a.Id == applicationId);
+            if (app != null)
+            {
+                var index = applications!.IndexOf(app);
+                applications[index] = app with { Status = newStatus };
+            }
+        }
+    }
+}

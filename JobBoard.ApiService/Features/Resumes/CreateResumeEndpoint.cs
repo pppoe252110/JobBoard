@@ -1,14 +1,22 @@
 ﻿using FastEndpoints;
+using Meilisearch;
+using JobBoard.ApiService.Common;
 using JobBoard.ApiService.Data;
 using JobBoard.ApiService.Features.Resumes.Models;
+using JobBoard.ApiService.Utils;
 
 namespace JobBoard.ApiService.Features.Resumes;
 
 public class CreateResumeEndpoint : Endpoint<CreateResumeRequest>
 {
     private readonly JobPortalDbContext _db;
+    private readonly MeilisearchClient _meilisearchClient;
 
-    public CreateResumeEndpoint(JobPortalDbContext db) => _db = db;
+    public CreateResumeEndpoint(JobPortalDbContext db, MeilisearchClient meilisearchClient)
+    {
+        _db = db;
+        _meilisearchClient = meilisearchClient;
+    }
 
     public override void Configure()
     {
@@ -32,13 +40,14 @@ public class CreateResumeEndpoint : Endpoint<CreateResumeRequest>
             FullName = req.FullName,
             Title = req.Title,
             Location = req.Location,
+            ExpectedSalary = req.ExpectedSalary,
             Skills = req.Skills,
             IsVisible = req.IsVisible,
             AboutMe = req.AboutMe,
             ContactMethods = req.ContactMethods,
             WorkExperiences = req.WorkExperiences.Select(we => new WorkExperience
             {
-                Id = we.Id ?? Guid.NewGuid(),
+                Id = Guid.NewGuid(),
                 CompanyName = we.CompanyName,
                 Position = we.Position,
                 StartDate = we.StartDate,
@@ -47,9 +56,14 @@ public class CreateResumeEndpoint : Endpoint<CreateResumeRequest>
                 Technologies = we.Technologies
             }).ToList()
         };
+        resume.ExperienceYears = ExperienceCalculator.CalculateTotalYears(resume.WorkExperiences);
 
         _db.Resumes.Add(resume);
         await _db.SaveChangesAsync(ct);
+
+        // Index in Meilisearch
+        var index = _meilisearchClient.Index("resumes");
+        await index.AddDocumentsAsync([MeilisearchConverter.ConvertResume(resume)], cancellationToken: ct);
 
         await Send.OkAsync(new { resume.Id }, ct);
     }

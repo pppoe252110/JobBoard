@@ -38,6 +38,7 @@ public class GetUserResumesEndpoint : EndpointWithoutRequest<List<ResumeResponse
                     Skills = r.Skills,
                     IsVisible = r.IsVisible,
                     AboutMe = r.AboutMe,
+                    ExpectedSalary = r.ExpectedSalary,
                     WorkExperiences = r.WorkExperiences.Select(we => new WorkExperienceDto
                     {
                         Id = we.Id,

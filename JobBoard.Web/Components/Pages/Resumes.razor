@@ -1,54 +1,129 @@
 ﻿@page "/resumes"
 
+@using JobBoard.Web.Models
 @using JobBoard.Web.Services
 
 @inject ResumeApiClient ResumeApi
+@inject NavigationManager Navigation
 
 @rendermode InteractiveServer
 
 <PageTitle>Resumes</PageTitle>
 
-<h1>Candidate Resumes</h1>
+<div class="container py-4">
+    <h1 class="display-5 fw-bold mb-4">Candidate Resumes</h1>
 
-@if (resumes == null)
-{
-    <p>Loading...</p>
-}
-else if (!resumes.Any())
-{
-    <p>No resumes found.</p>
-}
-else
-{
-    <div class="row">
-        @foreach (var resume in resumes)
-        {
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">@resume.Title</h5>
-                        <p class="card-text">@Truncate(resume.AboutMe, 100)</p>
-                        <div>
-                            @foreach (var skill in resume.Skills.Languages.Select(l => l.Name).Concat(resume.Skills.Frameworks))
-                            {
-                                <span class="badge bg-secondary me-1">@skill</span>
-                            }
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted">Search term</label>
+                    <input type="text" class="form-control" placeholder="Title or keywords" @bind="search.Query" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted">Min Experience (Years)</label>
+                    <input type="number" class="form-control" placeholder="Any" @bind="search.MinExperience" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted">Required Skill</label>
+                    <input type="text" class="form-control" placeholder="e.g. C#" @bind="search.RequiredSkill" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="SearchAsync">
+                        <i class="bi bi-search me-1"></i> Search
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (result == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!result.Items.Any())
+    {
+        <div class="alert alert-info">No resumes match your criteria.</div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var resume in result.Items)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm border">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title fw-bold mb-3">@resume.Title</h5>
+                            
+                            <div class="mb-3">
+                                <span class="badge bg-secondary me-1">
+                                    <i class="bi bi-briefcase me-1"></i> @resume.ExperienceYears years exp.
+                                </span>
+                                @if (resume.ExpectedSalary.HasValue)
+                                {
+                                    <span class="badge bg-success me-1">
+                                        <i class="bi bi-cash-stack me-1"></i> @resume.ExpectedSalary.Value.ToString("N0")
+                                    </span>
+                                }
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <button class="btn btn-sm btn-outline-primary w-100" @onclick="() => ViewDetails(resume.Id)">
+                                    <i class="bi bi-eye me-1"></i> View Profile
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        }
-    </div>
-}
+            }
+        </div>
+
+        <nav aria-label="Resumes pagination">
+            <ul class="pagination justify-content-center mt-4">
+                <li class="page-item @(result.HasPreviousPage ? "" : "disabled")">
+                    <button class="page-link" @onclick="() => ChangePage(result.PageNumber - 1)">Previous</button>
+                </li>
+                @for (int i = 1; i <= result.TotalPages; i++)
+                {
+                    var pageIndex = i;
+                    <li class="page-item @(pageIndex == result.PageNumber ? "active" : "")">
+                        <button class="page-link" @onclick="() => ChangePage(pageIndex)">@pageIndex</button>
+                    </li>
+                }
+                <li class="page-item @(result.HasNextPage ? "" : "disabled")">
+                    <button class="page-link" @onclick="() => ChangePage(result.PageNumber + 1)">Next</button>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
 
 @code {
-    private List<ResumeResponse>? resumes;
+    private ResumeSearchModel search = new();
+    private PagedResponse<ResumeSummaryResponse>? result;
 
     protected override async Task OnInitializedAsync()
     {
-        resumes = await ResumeApi.GetAllAsync();
+        await SearchAsync();
     }
 
-    private string Truncate(string text, int maxLength) =>
-        text.Length <= maxLength ? text : text[..maxLength] + "...";
+    private async Task SearchAsync()
+    {
+        result = await ResumeApi.SearchResumesAsync(search);
+    }
+
+    private async Task ChangePage(int page)
+    {
+        search.PageNumber = page;
+        await SearchAsync();
+    }
+
+    private void ViewDetails(Guid id)
+    {
+        Navigation.NavigateTo($"/resume/{id}");
+    }
 }

@@ -1,15 +1,23 @@
 ﻿using FastEndpoints;
+using Meilisearch;
+using JobBoard.ApiService.Common;
 using JobBoard.ApiService.Data;
 using JobBoard.ApiService.Features.Resumes.Models;
 using Microsoft.EntityFrameworkCore;
+using JobBoard.ApiService.Utils;
 
 namespace JobBoard.ApiService.Features.Resumes;
 
 public class UpdateResumeEndpoint : Endpoint<UpdateResumeRequest>
 {
     private readonly JobPortalDbContext _db;
+    private readonly MeilisearchClient _meilisearchClient;
 
-    public UpdateResumeEndpoint(JobPortalDbContext db) => _db = db;
+    public UpdateResumeEndpoint(JobPortalDbContext db, MeilisearchClient meilisearchClient)
+    {
+        _db = db;
+        _meilisearchClient = meilisearchClient;
+    }
 
     public override void Configure()
     {
@@ -47,6 +55,7 @@ public class UpdateResumeEndpoint : Endpoint<UpdateResumeRequest>
         resume.FullName = req.FullName;
         resume.Title = req.Title;
         resume.Location = req.Location;
+        resume.ExpectedSalary = req.ExpectedSalary;
         resume.Skills = req.Skills;
         resume.IsVisible = req.IsVisible;
         resume.AboutMe = req.AboutMe;
@@ -86,8 +95,14 @@ public class UpdateResumeEndpoint : Endpoint<UpdateResumeRequest>
                 });
             }
         }
-
+        resume.ExperienceYears = ExperienceCalculator.CalculateTotalYears(resume.WorkExperiences);
+        resume.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
-        await Send.OkAsync(ct);
+
+        var index = _meilisearchClient.Index("resumes");
+        var taskInfo = await index.AddDocumentsAsync([MeilisearchConverter.ConvertResume(resume)], cancellationToken: ct);
+        await index.WaitForTaskAsync(taskInfo.TaskUid, cancellationToken: ct);
+
+        await Send.NoContentAsync(ct);
     }
 }

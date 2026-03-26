@@ -6,6 +6,7 @@ public class ResumeResponse
     public string FullName { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
+    public decimal? ExpectedSalary { get; set; }
     public List<ContactMethodDto> ContactMethods { get; set; } = new();
     public SkillsMatrix Skills { get; set; } = new();
     public bool IsVisible { get; set; }

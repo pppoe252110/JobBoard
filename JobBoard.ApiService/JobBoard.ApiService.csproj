@@ -14,6 +14,7 @@
     <PackageReference Include="Aspire.Dashboard.Sdk.win-x64" Version="13.2.0" />
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.2.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+    <PackageReference Include="CommunityToolkit.Aspire.Meilisearch" Version="13.1.1" />
     <PackageReference Include="FastEndpoints" Version="8.0.1" />
     <PackageReference Include="FastEndpoints.Attributes" Version="8.0.1" />
     <PackageReference Include="FastEndpoints.Messaging.Core" Version="8.0.1" />

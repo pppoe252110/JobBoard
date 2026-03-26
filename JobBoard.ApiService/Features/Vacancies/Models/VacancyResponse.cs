@@ -7,6 +7,8 @@
         public string DescriptionMarkdown { get; set; } = string.Empty;
         public decimal? SalaryFrom { get; set; }
         public decimal? SalaryTo { get; set; }
+        public string? Location { get; set; }
+        public bool IsRemote { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public bool IsArchived { get; set; }
     }

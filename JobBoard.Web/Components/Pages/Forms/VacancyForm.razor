@@ -6,7 +6,7 @@
 
 @rendermode InteractiveServer
 
-<div class="modal fade" id="vacancyModal" tabindex="-1" aria-labelledby="vacancyModalLabel" aria-hidden="true">
+<div class="modal fade" id="vacancyModal" aria-labelledby="vacancyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -24,37 +24,49 @@
                               @bind="model.DescriptionMarkdown"
                                   @bind:event="oninput">
                     </textarea>
-                    <div class="mt-2">
-                        <small class="text-muted">Supports Markdown formatting. Preview:</small>
-                            <div class="border p-2 mt-1 bg-body-tertiary markdown-preview">
+                        <div class="mt-2">
+                            <small class="text-muted">Supports Markdown formatting. Preview:</small>
+                            <div class="border p-2 mt-1 bg-body-tertiary">
                                 @((MarkupString)Markdig.Markdown.ToHtml(model.DescriptionMarkdown ?? "", pipeline))
                             </div>
+                        </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Salary From</label>
+                            <input type="number" class="form-control" @bind="model.SalaryFrom" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Salary To</label>
+                            <input type="number" class="form-control" @bind="model.SalaryTo" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Location</label>
+                            <input type="text" class="form-control" @bind="model.Location" placeholder="City, Country or Remote" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="isRemoteCheck" @bind="model.IsRemote" />
+                                <label class="form-check-label" for="isRemoteCheck">Remote position</label>
+                            </div>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@ErrorMessage</div>
+                    }
                 </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Salary From</label>
-                        <input type="number" class="form-control" @bind="model.SalaryFrom" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Salary To</label>
-                        <input type="number" class="form-control" @bind="model.SalaryTo" />
-                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="Save" disabled="@isSaving">
+                        @(isSaving ? "Saving..." : "Save")
+                    </button>
                 </div>
-                @if (!string.IsNullOrEmpty(ErrorMessage))
-                {
-                    <div class="alert alert-danger">@ErrorMessage</div>
-                }
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@isSaving">
-                    @(isSaving ? "Saving..." : "Save")
-                </button>
             </div>
         </div>
     </div>
-</div>
 
 @code {
     [Parameter] public VacancyResponse? ExistingVacancy { get; set; }
@@ -70,9 +82,24 @@
     protected override void OnInitialized()
     {
         pipeline = new MarkdownPipelineBuilder()
-            .UseAdvancedExtensions().UseEmojiAndSmiley().UseBootstrap()
+            .UseAdvancedExtensions().UseEmojiAndSmiley().UseSoftlineBreakAsHardlineBreak().UseBootstrap()
             .Build();
 
+        // Initialize model from parameter if present (this runs once, but OnParametersSet will handle updates)
+        UpdateModelFromParameter();
+        UpdatePreview();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // When parameters change (e.g., modal is opened with a different vacancy), update the model.
+        UpdateModelFromParameter();
+        UpdatePreview();
+        StateHasChanged();
+    }
+
+    private void UpdateModelFromParameter()
+    {
         if (IsEdit && ExistingVacancy != null)
         {
             model = new VacancyFormModel
@@ -81,11 +108,25 @@
                 Title = ExistingVacancy.Title,
                 DescriptionMarkdown = ExistingVacancy.DescriptionMarkdown,
                 SalaryFrom = ExistingVacancy.SalaryFrom,
-                SalaryTo = ExistingVacancy.SalaryTo
+                SalaryTo = ExistingVacancy.SalaryTo,
+                Location = ExistingVacancy.Location,
+                IsRemote = ExistingVacancy.IsRemote
             };
         }
-
-        UpdatePreview();
+        else
+        {
+            // Reset for create mode
+            model = new VacancyFormModel
+            {
+                Id = null,
+                Title = "",
+                DescriptionMarkdown = "",
+                SalaryFrom = null,
+                SalaryTo = null,
+                Location = "",
+                IsRemote = false
+            };
+        }
     }
 
     private void UpdatePreview()
@@ -101,16 +142,18 @@
         try
         {
             HttpResponseMessage response;
-            if (IsEdit)
+            if (IsEdit && model.Id.HasValue)
             {
                 var request = new UpdateVacancyRequest(
-                    model.Id!.Value,
+                    model.Id.Value,
                     model.Title,
                     model.DescriptionMarkdown,
                     model.SalaryFrom,
-                    model.SalaryTo
+                    model.SalaryTo,
+                    model.Location,
+                    model.IsRemote
                 );
-                response = await VacancyApi.UpdateAsync(model.Id!.Value, request);
+                response = await VacancyApi.UpdateAsync(model.Id.Value, request);
             }
             else
             {
@@ -118,7 +161,9 @@
                     model.Title,
                     model.DescriptionMarkdown,
                     model.SalaryFrom,
-                    model.SalaryTo
+                    model.SalaryTo,
+                    model.Location,
+                    model.IsRemote
                 );
                 response = await VacancyApi.CreateAsync(request);
             }
@@ -146,7 +191,7 @@
 
     private async Task CloseModal()
     {
-        await JSRuntime.InvokeVoidAsync("hideModal", "#vacancyModal"); // or "#resumeModal"
+        await JSRuntime.InvokeVoidAsync("hideModal", "#vacancyModal");
     }
 
     public class VacancyFormModel
@@ -156,5 +201,7 @@
         public string DescriptionMarkdown { get; set; } = "";
         public decimal? SalaryFrom { get; set; }
         public decimal? SalaryTo { get; set; }
+        public string? Location { get; set; } = "";
+        public bool IsRemote { get; set; }
     }
 }

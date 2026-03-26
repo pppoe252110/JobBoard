@@ -1,5 +1,6 @@
 ﻿using FastEndpoints;
 using JobBoard.ApiService.Data;
+using Meilisearch;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobBoard.ApiService.Features.Resumes;
@@ -7,8 +8,13 @@ namespace JobBoard.ApiService.Features.Resumes;
 public class DeleteResumeEndpoint : EndpointWithoutRequest
 {
     private readonly JobPortalDbContext _db;
+    private readonly MeilisearchClient _meilisearchClient;
 
-    public DeleteResumeEndpoint(JobPortalDbContext db) => _db = db;
+    public DeleteResumeEndpoint(JobPortalDbContext db, MeilisearchClient meilisearchClient)
+    {
+        _db = db;
+        _meilisearchClient = meilisearchClient;
+    }
 
     public override void Configure()
     {
@@ -35,6 +41,10 @@ public class DeleteResumeEndpoint : EndpointWithoutRequest
 
         _db.Resumes.Remove(resume);
         await _db.SaveChangesAsync(ct);
+
+        var index = _meilisearchClient.Index("resumes");
+        await index.DeleteOneDocumentAsync(id.ToString(), cancellationToken: ct);
+
         await Send.NoContentAsync(ct);
     }
 }

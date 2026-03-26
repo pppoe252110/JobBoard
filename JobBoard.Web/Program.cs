@@ -1,4 +1,3 @@
-using JobBoard.Web;
 using JobBoard.Web.Components;
 using JobBoard.Web.Services;
 using Microsoft.AspNetCore.Authentication;
@@ -6,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -102,6 +102,12 @@ app.MapPost("/auth/login-callback", async (
     }
 
     return Results.Redirect("/login?error=true");
+});
+
+app.MapPost("/auth/logout-callback", async (HttpContext context) =>
+{
+    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Redirect("/login");
 });
 
 app.Run();

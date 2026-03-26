@@ -29,7 +29,10 @@ public class GetVacancyListEndpoint : EndpointWithoutRequest<List<VacancyRespons
                 DescriptionMarkdown = v.DescriptionMarkdown,
                 SalaryFrom = v.SalaryFrom,
                 SalaryTo = v.SalaryTo,
-                CreatedAt = v.CreatedAt
+                Location = v.Location,
+                IsRemote = v.IsRemote,
+                CreatedAt = v.CreatedAt,
+                IsArchived = v.IsArchived
             })
             .ToListAsync(ct);
 

@@ -5,7 +5,7 @@
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
-<nav class="navbar navbar-expand-md py-2 shadow-sm" style="background-color: var(--bg-card); border-bottom: 1px solid var(--border);">
+<nav class="navbar navbar-expand-md py-2 shadow-sm">
     <div class="container-fluid px-4">
         <a class="navbar-brand fw-bold text-primary" href="">JobBoard</a>
         <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
@@ -37,14 +37,14 @@
                     </NotAuthorized>
                 </AuthorizeView>
                 <li class="nav-item ms-md-3 mt-2 mt-md-0">
-                    <button class="btn border-0" @onclick="ToggleTheme">
+                    <button class="btn border-1" @onclick="ToggleTheme">
                         @if (ThemeService.IsDarkMode)
                         {
-                            <i class="bi bi-sun-fill text-warning me-1"></i>
+                            <i class="bi bi-moon-fill"></i>
                         }
                         else
                         {
-                            <i class="bi bi-moon-fill text-primary me-1"></i>
+                            <i class="bi bi-brightness-high-fill"></i>
                         }
                     </button>
                 </li>

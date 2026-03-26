@@ -27,19 +27,10 @@ public class GetResumeListEndpoint : EndpointWithoutRequest<List<ResumeResponse>
                 FullName = r.FullName,
                 Title = r.Title,
                 Location = r.Location,
+                ExpectedSalary = r.ExpectedSalary,
                 Skills = r.Skills,
                 IsVisible = r.IsVisible,
-                AboutMe = r.AboutMe,
-                WorkExperiences = r.WorkExperiences.Select(we => new WorkExperienceDto
-                {
-                    Id = we.Id,
-                    CompanyName = we.CompanyName,
-                    Position = we.Position,
-                    StartDate = we.StartDate,
-                    EndDate = we.EndDate,
-                    Description = we.Description,
-                    Technologies = we.Technologies
-                }).ToList()
+                AboutMe = r.AboutMe
             })
             .AsNoTracking()
             .ToListAsync(ct);

@@ -1,5 +1,6 @@
 ﻿using FastEndpoints;
 using JobBoard.ApiService.Data;
+using Meilisearch;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobBoard.ApiService.Features.Vacancies;
@@ -7,8 +8,13 @@ namespace JobBoard.ApiService.Features.Vacancies;
 public class DeleteVacancyEndpoint : EndpointWithoutRequest
 {
     private readonly JobPortalDbContext _db;
+    private readonly MeilisearchClient _meilisearchClient;
 
-    public DeleteVacancyEndpoint(JobPortalDbContext db) => _db = db;
+    public DeleteVacancyEndpoint(JobPortalDbContext db, MeilisearchClient meilisearchClient)
+    {
+        _db = db;
+        _meilisearchClient = meilisearchClient;
+    }
 
     public override void Configure()
     {
@@ -35,6 +41,10 @@ public class DeleteVacancyEndpoint : EndpointWithoutRequest
 
         _db.Vacancies.Remove(vacancy);
         await _db.SaveChangesAsync(ct);
+
+        var index = _meilisearchClient.Index("vacancies");
+        await index.DeleteOneDocumentAsync(id.ToString(), cancellationToken: ct);
+
         await Send.NoContentAsync(ct);
     }
 }
