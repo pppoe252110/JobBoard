@@ -1,4 +1,6 @@
-﻿namespace JobBoard.Web.Services;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+
+namespace JobBoard.Web.Services;
 
 public class AuthApiClient(HttpClient httpClient)
 {
@@ -52,4 +54,4 @@ public class AuthApiClient(HttpClient httpClient)
 }
 
 public record LoginResponse(Guid UserId, string Nickname, string Email);
-public record ProfileResponse(Guid Id, string Nickname);
+public record ProfileResponse(Guid Id, string Nickname, string Email, DateTime CreatedAt);

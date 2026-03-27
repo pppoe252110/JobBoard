@@ -6,61 +6,66 @@
 
 @rendermode InteractiveServer
 
+<!-- Vacancy Modal -->
 <div class="modal fade" id="vacancyModal" aria-labelledby="vacancyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="vacancyModalLabel">@(IsEdit ? "Edit Vacancy" : "Create Vacancy")</h5>
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="vacancyModalLabel">
+                    <i class="bi bi-briefcase-fill me-2"></i>@(IsEdit ? "Edit Vacancy" : "Create Vacancy")
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body pt-0">
                 <div class="mb-3">
-                    <label class="form-label">Title</label>
-                    <input type="text" class="form-control" @bind="model.Title" />
+                    <label class="form-label fw-semibold text-secondary" for="VacancyTitle">Title</label>
+                    <input type="text" class="form-control rounded-3" id="VacancyTitle" name="VacancyTitle" @bind="model.Title" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Description (Markdown)</label>
-                    <textarea class="form-control" rows="6"
+                    <label class="form-label fw-semibold text-secondary" for="VacancyDescriptionMarkdown">Description (Markdown)</label>
+                    <textarea class="form-control rounded-3" id="VacancyDescriptionMarkdown" name="VacancyDescriptionMarkdown" rows="6"
                               @bind="model.DescriptionMarkdown"
                                   @bind:event="oninput">
                     </textarea>
                         <div class="mt-2">
                             <small class="text-muted">Supports Markdown formatting. Preview:</small>
-                            <div class="border p-2 mt-1 bg-body-tertiary">
+                            <div class="border rounded-3 p-3 mt-1 bg-body-tertiary">
                                 @((MarkupString)Markdig.Markdown.ToHtml(model.DescriptionMarkdown ?? "", pipeline))
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Salary From</label>
-                            <input type="number" class="form-control" @bind="model.SalaryFrom" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-secondary" for="VacancySalaryFrom">Salary From</label>
+                            <input type="number" class="form-control rounded-3" id="VacancySalaryFrom" name="VacancySalaryFrom" @bind="model.SalaryFrom" />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Salary To</label>
-                            <input type="number" class="form-control" @bind="model.SalaryTo" />
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-secondary" for="VacancySalaryTo">Salary To</label>
+                            <input type="number" class="form-control rounded-3" id="VacancySalaryTo" name="VacancySalaryTo" @bind="model.SalaryTo" />
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label">Location</label>
-                            <input type="text" class="form-control" @bind="model.Location" placeholder="City, Country or Remote" />
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold text-secondary" for="VacancyLocation">Location</label>
+                            <input type="text" class="form-control rounded-3" id="VacancyLocation" name="VacancyLocation" @bind="model.Location" placeholder="City, Country or Remote" />
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="form-check mt-4">
-                                <input class="form-check-input" type="checkbox" id="isRemoteCheck" @bind="model.IsRemote" />
-                                <label class="form-check-label" for="isRemoteCheck">Remote position</label>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input rounded-3" type="checkbox" id="VacancyIsRemote" name="VacancyIsRemote" @bind="model.IsRemote" />
+                                <label class="form-check-label text-secondary" for="VacancyIsRemote">
+                                    <i class="bi bi-wifi me-1"></i> Remote position
+                                </label>
                             </div>
                         </div>
                     </div>
                     @if (!string.IsNullOrEmpty(ErrorMessage))
                     {
-                        <div class="alert alert-danger">@ErrorMessage</div>
+                        <div class="alert alert-danger rounded-3 mt-3">@ErrorMessage</div>
                     }
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" @onclick="Save" disabled="@isSaving">
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="Save" disabled="@isSaving">
                         @(isSaving ? "Saving..." : "Save")
                     </button>
                 </div>
@@ -81,7 +86,7 @@
 
     protected override void OnInitialized()
     {
-        pipeline = new MarkdownPipelineBuilder()
+        pipeline = new MarkdownPipelineBuilder().DisableHtml()
             .UseAdvancedExtensions().UseEmojiAndSmiley().UseSoftlineBreakAsHardlineBreak().UseBootstrap()
             .Build();
 

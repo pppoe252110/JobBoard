@@ -1,10 +1,11 @@
 ﻿using FastEndpoints;
-using Meilisearch;
 using JobBoard.ApiService.Common;
 using JobBoard.ApiService.Data;
 using JobBoard.ApiService.Features.Resumes.Models;
-using Microsoft.EntityFrameworkCore;
 using JobBoard.ApiService.Utils;
+using Meilisearch;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace JobBoard.ApiService.Features.Resumes;
 
@@ -27,82 +28,90 @@ public class UpdateResumeEndpoint : Endpoint<UpdateResumeRequest>
 
     public override async Task HandleAsync(UpdateResumeRequest req, CancellationToken ct)
     {
-        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+        var resumeId = Route<Guid>("id");
+        if (req.Id != resumeId)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
+        // 1. Authenticate & Fetch (Combining ownership check in query)
+        var userIdClaim = User.FindFirstValue("UserId");
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
             await Send.UnauthorizedAsync(ct);
             return;
         }
 
-        var id = Route<Guid>("id");
-        if (req.Id != id)
-        {
-            await Send.ForbiddenAsync(ct);
-            return;
-        }
-
         var resume = await _db.Resumes
             .Include(r => r.WorkExperiences)
-            .FirstOrDefaultAsync(r => r.Id == req.Id, ct);
+            .FirstOrDefaultAsync(r => r.Id == resumeId && r.UserId == userId, ct);
 
-        if (resume == null || resume.UserId != userId)
+        if (resume == null)
         {
             await Send.NotFoundAsync(ct);
             return;
         }
 
-        // Update scalar properties
-        resume.FullName = req.FullName;
-        resume.Title = req.Title;
-        resume.Location = req.Location;
-        resume.ExpectedSalary = req.ExpectedSalary;
-        resume.Skills = req.Skills;
-        resume.IsVisible = req.IsVisible;
-        resume.AboutMe = req.AboutMe;
+        // 2. Update parent scalar properties cleanly using SetValues
+        _db.Entry(resume).CurrentValues.SetValues(req);
 
-        // Update work experiences
-        var incomingIds = req.WorkExperiences.Where(we => we.Id.HasValue).Select(we => we.Id.Value).ToList();
-        var toRemove = resume.WorkExperiences.Where(we => !incomingIds.Contains(we.Id)).ToList();
-        foreach (var we in toRemove)
-            _db.WorkExperiences.Remove(we);
+        // 3. Sync Work Experiences (Add/Update/Delete)
+        UpdateWorkExperiences(resume, req.WorkExperiences);
 
-        foreach (var weDto in req.WorkExperiences)
+        resume.ExperienceYears = ExperienceCalculator.CalculateTotalYears(resume.WorkExperiences);
+        resume.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        // 4. Meilisearch Background Sync (Don't block the HTTP response waiting for search index tasks)
+        var index = _meilisearchClient.Index("resumes");
+        await index.AddDocumentsAsync([MeilisearchConverter.ConvertResume(resume)], cancellationToken: ct);
+
+        await Send.NoContentAsync(ct);
+    }
+
+    private void UpdateWorkExperiences(Resume resume, List<WorkExperienceDto> incomingExperiences)
+    {
+        var incomingIds = incomingExperiences
+            .Where(w => w.Id.HasValue && w.Id != Guid.Empty)
+            .Select(w => w.Id!.Value)
+            .ToHashSet();
+
+        // DELETE: Remove experiences not present in the incoming payload
+        // 1. Identify which items to remove
+        var experiencesToRemove = resume.WorkExperiences
+            .Where(we => !incomingIds.Contains(we.Id))
+            .ToList();
+
+        // 2. Remove them from the collection
+        foreach (var toRemove in experiencesToRemove)
+            resume.WorkExperiences.Remove(toRemove);
+
+        foreach (var incoming in incomingExperiences)
         {
-            if (weDto.Id.HasValue)
+            if (incoming.Id.HasValue && incoming.Id != Guid.Empty)
             {
-                var existing = resume.WorkExperiences.FirstOrDefault(we => we.Id == weDto.Id);
+                // UPDATE: EF tracks changes automatically via SetValues
+                var existing = resume.WorkExperiences.FirstOrDefault(we => we.Id == incoming.Id);
                 if (existing != null)
                 {
-                    existing.CompanyName = weDto.CompanyName;
-                    existing.Position = weDto.Position;
-                    existing.StartDate = weDto.StartDate;
-                    existing.EndDate = weDto.EndDate;
-                    existing.Description = weDto.Description;
-                    existing.Technologies = weDto.Technologies;
+                    _db.Entry(existing).CurrentValues.SetValues(incoming);
                 }
             }
             else
             {
+                // ADD: Map to domain object
                 resume.WorkExperiences.Add(new WorkExperience
                 {
-                    Id = Guid.NewGuid(),
-                    CompanyName = weDto.CompanyName,
-                    Position = weDto.Position,
-                    StartDate = weDto.StartDate,
-                    EndDate = weDto.EndDate,
-                    Description = weDto.Description,
-                    Technologies = weDto.Technologies
+                    CompanyName = incoming.CompanyName,
+                    Position = incoming.Position,
+                    StartDate = incoming.StartDate,
+                    EndDate = incoming.EndDate,
+                    Description = incoming.Description,
+                    Technologies = incoming.Technologies
                 });
             }
         }
-        resume.ExperienceYears = ExperienceCalculator.CalculateTotalYears(resume.WorkExperiences);
-        resume.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(ct);
-
-        var index = _meilisearchClient.Index("resumes");
-        var taskInfo = await index.AddDocumentsAsync([MeilisearchConverter.ConvertResume(resume)], cancellationToken: ct);
-        await index.WaitForTaskAsync(taskInfo.TaskUid, cancellationToken: ct);
-
-        await Send.NoContentAsync(ct);
     }
 }

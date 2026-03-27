@@ -7,47 +7,60 @@
 
 <div class="modal fade" id="resumeModal" aria-labelledby="resumeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title fw-bold" id="resumeModalLabel">@(IsEdit ? "Edit Resume" : "Create Resume")</h5>
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="resumeModalLabel">
+                    <i class="bi bi-file-text-fill me-2"></i>@(IsEdit ? "Edit Resume" : "Create Resume")
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted">Full Name</label>
-                        <input type="text" class="form-control" @bind="model.FullName" />
+            <div class="modal-body pt-0">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-secondary" for="FullName">Full Name</label>
+                        <input type="text" class="form-control rounded-3" id="FullName" name="FullName" @bind="model.FullName" />
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted">Headline / Title</label>
-                        <input type="text" class="form-control" @bind="model.Title" />
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-secondary" for="Title">Headline / Title</label>
+                        <input type="text" class="form-control rounded-3" id="Title" name="Title" @bind="model.Title" />
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label text-muted">Location</label>
-                        <input type="text" class="form-control" @bind="model.Location" placeholder="City, Country" />
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-muted">Expected Salary (USD)</label>
-                        <input type="number" class="form-control" @bind="model.ExpectedSalary" step="1000" placeholder="e.g., 80000" />
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-secondary" for="Location">Location</label>
+                        <input type="text" class="form-control rounded-3" id="Location" name="Location" placeholder="City, Country" @bind="model.Location" />
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-muted">About Me</label>
-                    <textarea class="form-control" rows="4" @bind="model.AboutMe"></textarea>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-secondary" for="ExpectedSalary">Expected Salary (USD)</label>
+                        <input type="number" class="form-control rounded-3" id="ExpectedSalary" name="ExpectedSalary" @bind="model.ExpectedSalary" step="1000" placeholder="e.g., 80000" />
+                    </div>
                 </div>
 
-                <h5 class="fw-bold mt-4 mb-3">Contact Methods</h5>
-                <div class="mb-3">
+                <div class="mt-3">
+                    <label class="form-label fw-semibold text-secondary" for="AboutMe">About Me</label>
+                    <textarea class="form-control rounded-3" id="AboutMe" name="AboutMe" rows="4" @bind="model.AboutMe"></textarea>
+                    <div class="form-check mt-2 mb-4">
+                        <input type="checkbox" class="form-check-input rounded-3" id="isVisibleCheck" name="IsVisible" @bind="model.IsVisible" />
+                        <label class="form-check-label text-secondary" for="isVisibleCheck">
+                            <i class="bi bi-eye me-1"></i> Visible to employers
+                        </label>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-envelope-paper me-2"></i>Contact Methods
+                </h5>
+                <div class="mb-4">
                     @for (int i = 0; i < model.ContactMethods.Count; i++)
                     {
                         var contact = model.ContactMethods[i];
-                        <div class="row mb-2 align-items-end">
+                        <div class="row mb-3">
                             <div class="col-md-4">
-                                <select class="form-select" @bind="contact.Type">
+                                <label class="form-label fw-semibold text-secondary" for="ContactMethods_@(i)_Type">Type</label>
+                                <select class="form-select rounded-3" id="ContactMethods_@(i)_Type" name="ContactMethods[@i].Type" @bind="contact.Type">
                                     <option value="">-- Select --</option>
                                     <option value="Email">Email</option>
                                     <option value="Phone">Phone</option>
@@ -57,26 +70,32 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <input type="text" class="form-control" placeholder="Value" @bind="contact.Value" />
+                                <label class="form-label fw-semibold text-secondary" for="ContactMethods_@(i)_Value">Value</label>
+                                <input type="text" class="form-control rounded-3" id="ContactMethods_@(i)_Value" name="ContactMethods[@i].Value" placeholder="Value" @bind="contact.Value" />
                             </div>
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-sm btn-outline-danger w-100" @onclick="() => RemoveContact(contact)">Remove</button>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-danger rounded-3 w-100 d-inline-flex align-items-center justify-content-center px-3" @onclick="() => RemoveContact(contact)">
+                                    <i class="bi bi-trash me-1"></i> <span class="d-md-none d-lg-inline">Remove</span>
+                                </button>
                             </div>
                         </div>
                     }
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" @onclick="AddContact">
-                        <i class="bi bi-plus-circle"></i> Add Contact
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill mt-2 px-3" @onclick="AddContact">
+                        <i class="bi bi-plus-circle me-1"></i> Add Contact
                     </button>
                 </div>
 
-                <h5 class="fw-bold mt-4 mb-3">Languages</h5>
-                <div class="mb-3">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-chat-dots me-2"></i>Languages
+                </h5>
+                <div class="mb-4">
                     @for (int i = 0; i < model.Languages.Count; i++)
                     {
                         var lang = model.Languages[i];
-                        <div class="row mb-2 align-items-end">
+                        <div class="row mb-3">
                             <div class="col-md-5">
-                                <select class="form-select" @bind="lang.Name">
+                                <label class="form-label fw-semibold text-secondary" for="Languages_@(i)_Name">Language</label>
+                                <select class="form-select rounded-3" id="Languages_@(i)_Name" name="Languages[@i].Name" @bind="lang.Name">
                                     <option value="">-- Select Language --</option>
                                     @foreach (var langOption in GetAvailableLanguages(lang.Name))
                                     {
@@ -84,8 +103,9 @@
                                     }
                                 </select>
                             </div>
-                            <div class="col-md-5">
-                                <select class="form-select" @bind="lang.Level">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-secondary" for="Languages_@(i)_Level">Level</label>
+                                <select class="form-select rounded-3" id="Languages_@(i)_Level" name="Languages[@i].Level" @bind="lang.Level">
                                     <option value="">-- Level --</option>
                                     <option value="A1">A1</option>
                                     <option value="A2">A2</option>
@@ -96,31 +116,40 @@
                                     <option value="Native">Native</option>
                                 </select>
                             </div>
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-sm btn-outline-danger w-100" @onclick="() => RemoveLanguage(lang)">Remove</button>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-danger rounded-3 w-100 d-inline-flex align-items-center justify-content-center px-3" @onclick="() => RemoveLanguage(lang)">
+                                    <i class="bi bi-trash me-1"></i> Remove
+                                </button>
                             </div>
                         </div>
                     }
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" @onclick="AddLanguage">
-                        <i class="bi bi-plus-circle"></i> Add Language
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill mt-2 px-3" @onclick="AddLanguage">
+                        <i class="bi bi-plus-circle me-1"></i> Add Language
                     </button>
                 </div>
 
-                <h5 class="fw-bold mt-4 mb-3">Frameworks & Tools</h5>
-                <div class="mb-3">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-tools me-2"></i>Frameworks & Tools
+                </h5>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-secondary" for="newFramework">Framework/Tool</label>
                     <div class="input-group">
                         <input type="text"
-                               class="form-control"
+                               class="form-control rounded-start-3"
+                               id="newFramework"
+                               name="newFramework"
                                placeholder="Type framework and press Enter"
                                @bind="newFramework"
                                @bind:event="oninput"
                                @onkeypress="OnFrameworkKeyPress" />
-                        <button class="btn btn-outline-primary" type="button" @onclick="AddFramework">Add</button>
+                        <button class="btn btn-outline-primary rounded-end-3 px-4" type="button" @onclick="AddFramework">
+                            <i class="bi bi-plus"></i> Add
+                        </button>
                     </div>
                     <div class="mt-2 d-flex flex-wrap gap-2">
                         @foreach (var fw in model.Frameworks)
                         {
-                            <span class="badge bg-info text-dark p-2 d-flex align-items-center gap-2">
+                            <span class="badge bg-info text-dark rounded-pill p-2 px-3 d-flex align-items-center gap-2">
                                 @fw
                                 <button type="button" class="btn-close ms-1" @onclick="() => RemoveFramework(fw)"></button>
                             </span>
@@ -128,82 +157,87 @@
                     </div>
                 </div>
 
-                <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="isVisibleCheck" @bind="model.IsVisible" />
-                    <label class="form-check-label text-muted" for="isVisibleCheck">Visible to employers</label>
-                </div>
-
                 <hr class="my-4" />
 
-                <h5 class="fw-bold mb-3">Work Experience</h5>
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-briefcase me-2"></i>Work Experience
+                </h5>
                 @for (int i = 0; i < model.WorkExperiences.Count; i++)
                 {
                     var we = model.WorkExperiences[i];
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label text-muted">Company</label>
-                                    <input type="text" class="form-control" @bind="we.CompanyName" />
+                    <div class="card mb-4 border-1 shadow-sm rounded-4">
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary" for="WorkExperiences_@(i)_CompanyName">Company</label>
+                                    <input type="text" class="form-control rounded-3" id="WorkExperiences_@(i)_CompanyName" name="WorkExperiences[@i].CompanyName" @bind="we.CompanyName" />
                                 </div>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label text-muted">Position</label>
-                                    <input type="text" class="form-control" @bind="we.Position" />
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label text-muted">Start Date</label>
-                                    <input type="month" class="form-control" @bind="we.StartMonthYear" max="@GetCurrentYearMonth()" />
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label text-muted">End Date (leave blank if current)</label>
-                                    <input type="month" class="form-control" @bind="we.EndMonthYear" max="@GetCurrentYearMonth()" />
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary" for="WorkExperiences_@(i)_Position">Position</label>
+                                    <input type="text" class="form-control rounded-3" id="WorkExperiences_@(i)_Position" name="WorkExperiences[@i].Position" @bind="we.Position" />
                                 </div>
                             </div>
-                            <div class="mb-2">
-                                <label class="form-label text-muted">Technologies Used</label>
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary" for="WorkExperiences_@(i)_StartMonthYear">Start Date</label>
+                                    <input type="month" class="form-control rounded-3" id="WorkExperiences_@(i)_StartMonthYear" name="WorkExperiences[@i].StartMonthYear" @bind="we.StartMonthYear" max="@GetCurrentYearMonth()" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary" for="WorkExperiences_@(i)_EndMonthYear">End Date (leave blank if current)</label>
+                                    <input type="month" class="form-control rounded-3" id="WorkExperiences_@(i)_EndMonthYear" name="WorkExperiences[@i].EndMonthYear" @bind="we.EndMonthYear" max="@GetCurrentYearMonth()" />
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label fw-semibold text-secondary" for="WorkExperiences_@(i)_NewTech">Technologies Used</label>
                                 <div class="input-group mb-2">
                                     <input type="text"
-                                           class="form-control"
+                                           class="form-control rounded-start-3"
+                                           id="WorkExperiences_@(i)_NewTech"
+                                           name="WorkExperiences[@i].NewTech"
                                            placeholder="Type tech (e.g. Docker) and press Enter"
                                            @bind="we.NewTech"
                                            @bind:event="oninput"
                                            @onkeydown="(e) => OnTechKeyPress(e, we)" />
-                                    <button class="btn btn-outline-primary" type="button" @onclick="() => AddTech(we)">Add</button>
+                                    <button class="btn btn-outline-primary rounded-end-3 px-3" type="button" @onclick="() => AddTech(we)">
+                                        <i class="bi bi-plus"></i> Add
+                                    </button>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     @foreach (var tech in we.Technologies)
                                     {
-                                        <span class="badge bg-secondary p-2 d-flex align-items-center gap-2">
+                                        <span class="badge bg-secondary rounded-pill p-2 px-3 d-flex align-items-center gap-2">
                                             @tech
-                                            <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.5rem;" @onclick="() => RemoveTech(we, tech)"></button>
+                                            <button type="button" class="btn-close btn-close-white ms-1" @onclick="() => RemoveTech(we, tech)"></button>
                                         </span>
                                     }
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Description</label>
-                                <textarea class="form-control" rows="2" @bind="we.Description"></textarea>
+                            <div class="mt-3">
+                                <label class="form-label fw-semibold text-secondary" for="WorkExperiences_@(i)_Description">Description</label>
+                                <textarea class="form-control rounded-3" rows="3" id="WorkExperiences_@(i)_Description" name="WorkExperiences[@i].Description" @bind="we.Description"></textarea>
                             </div>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveWorkExperience(we)">
-                                <i class="bi bi-trash"></i> Remove Role
-                            </button>
+                            <div class="mt-3 text-end">
+                                <button class="btn btn-outline-danger rounded-3 px-4 d-inline-flex align-items-center" @onclick="() => RemoveWorkExperience(we)">
+                                    <i class="bi bi-trash me-2"></i> Remove Role
+                                </button>
+                            </div>
                         </div>
                     </div>
                 }
-                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddWorkExperience">
-                    <i class="bi bi-plus-circle"></i> Add Work Experience
-                </button>
+                <div class="text-center mb-4">
+                    <button type="button" class="btn btn-outline-primary rounded-pill px-4" @onclick="AddWorkExperience">
+                        <i class="bi bi-plus-circle me-2"></i> Add Work Experience
+                    </button>
+                </div>
 
                 @if (!string.IsNullOrEmpty(ErrorMessage))
                 {
-                    <div class="alert alert-danger mt-3">@ErrorMessage</div>
+                    <div class="alert alert-danger rounded-3 mt-3">@ErrorMessage</div>
                 }
             </div>
-            <div class="modal-footer border-top">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@isSaving">
+            <div class="modal-footer border-0 pt-0 pb-4 justify-content-center">
+                <button type="button" class="btn btn-light rounded-pill px-5 me-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary rounded-pill px-5" @onclick="Save" disabled="@isSaving">
                     @(isSaving ? "Saving..." : "Save Profile")
                 </button>
             </div>

@@ -5,39 +5,39 @@
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
-<nav class="navbar navbar-expand-md py-2 shadow-sm">
+<nav class="navbar navbar-expand-md py-3 shadow-sm sticky-top bg-body rounded-bottom-4">
     <div class="container-fluid px-4">
-        <a class="navbar-brand fw-bold text-primary" href="">JobBoard</a>
-        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+        <a class="navbar-brand fw-bold text-primary fs-4" href="">JobBoard</a>
+        <button class="navbar-toggler border-0" type="button" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="@NavMenuCssClass navbar-collapse" @onclick="CollapseNavMenu">
-            <ul class="navbar-nav me-auto mb-2 mb-md-0">
+            <ul class="navbar-nav me-auto mb-2 mb-md-0 gap-1">
                 <li class="nav-item">
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <NavLink class="nav-link rounded-pill px-3 py-2" href="" Match="NavLinkMatch.All">
                         <i class="bi bi-house-door-fill me-1"></i> Home
                     </NavLink>
                 </li>
             </ul>
-            <ul class="navbar-nav ms-auto mb-2 mb-md-0 d-flex align-items-center">
+            <ul class="navbar-nav ms-md-auto mb-2 mb-md-0 d-flex align-items-start align-items-md-center gap-2">
                 <AuthorizeView>
                     <Authorized>
                         <li class="nav-item">
-                            <NavLink class="nav-link" href="profile">
+                            <NavLink class="nav-link rounded-pill px-3 py-2" href="profile">
                                 <i class="bi bi-person-fill me-1"></i> @nickname
                             </NavLink>
                         </li>
                     </Authorized>
                     <NotAuthorized>
                         <li class="nav-item">
-                            <NavLink class="nav-link" href="login">
+                            <NavLink class="nav-link rounded-pill px-3 py-2" href="login">
                                 <i class="bi bi-box-arrow-in-right me-1"></i> Login
                             </NavLink>
                         </li>
                     </NotAuthorized>
                 </AuthorizeView>
-                <li class="nav-item ms-md-3 mt-2 mt-md-0">
-                    <button class="btn border-1" @onclick="ToggleTheme">
+                <li class="nav-item">
+                    <button class="btn rounded-pill px-3 py-2 border-0 bg-primary bg-opacity-10 hover-bg-opacity-25 transition" @onclick="ToggleTheme">
                         @if (ThemeService.IsDarkMode)
                         {
                             <i class="bi bi-moon-fill"></i>
@@ -87,10 +87,7 @@
 
     private async Task ToggleTheme()
     {
-        // 1. Flip the state inside the ThemeService
         ThemeService.SetTheme(!ThemeService.IsDarkMode);
-        
-        // 2. Pass the correct string to your JS manager
         var theme = ThemeService.IsDarkMode ? "dark" : "light";
         await JSRuntime.InvokeVoidAsync("themeManager.setTheme", theme);
     }

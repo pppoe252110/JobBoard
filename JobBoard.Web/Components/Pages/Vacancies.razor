@@ -14,34 +14,35 @@
 
 <PageTitle>Vacancies</PageTitle>
 
-<div class="container py-4">
+<div class="container py-5">
     <h1 class="display-5 fw-bold mb-4">Job Vacancies</h1>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
+    <!-- Search Card -->
+    <div class="card border-0 shadow rounded-4 mb-5">
+        <div class="card-body p-4">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label text-muted">Search term</label>
-                    <input type="text" class="form-control" placeholder="Title or description" @bind="search.SearchTerm" />
+                    <label class="form-label fw-semibold text-secondary" for="SearchTerm">Search term</label>
+                    <input type="text" class="form-control rounded-pill" id="SearchTerm" name="SearchTerm" placeholder="Title or description" @bind="search.SearchTerm" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label text-muted">Min salary</label>
-                    <input type="number" class="form-control" placeholder="Any" @bind="search.MinSalary" />
+                    <label class="form-label fw-semibold text-secondary" for="MinSalary">Min salary</label>
+                    <input type="number" class="form-control rounded-pill" id="MinSalary" name="MinSalary" placeholder="Any" @bind="search.MinSalary" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label text-muted">Location</label>
-                    <input type="text" class="form-control" placeholder="City, remote..." @bind="search.Location" />
+                    <label class="form-label fw-semibold text-secondary" for="Location">Location</label>
+                    <input type="text" class="form-control rounded-pill" id="Location" name="Location" placeholder="City, remote..." @bind="search.Location" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label text-muted">Work mode</label>
-                    <select class="form-select" @bind="search.IsRemote">
+                    <label class="form-label fw-semibold text-secondary" for="IsRemote">Work mode</label>
+                    <select class="form-select rounded-pill" id="IsRemote" name="IsRemote" @bind="search.IsRemote">
                         <option value="">Any</option>
                         <option value="true">Remote only</option>
                         <option value="false">On‑site</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" @onclick="SearchAsync">
+                    <button class="btn btn-primary rounded-pill w-100 py-2" @onclick="SearchAsync">
                         <i class="bi bi-search me-1"></i> Search
                     </button>
                 </div>
@@ -51,7 +52,7 @@
 
     @if (result == null)
     {
-        <div class="text-center py-5">
+        <div class="d-flex justify-content-center align-items-center py-5">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
@@ -59,50 +60,53 @@
     }
     else if (!result.Items.Any())
     {
-        <div class="alert alert-info">No vacancies match your criteria.</div>
+        <div class="alert alert-info rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-info-circle me-2"></i> No vacancies match your criteria.
+        </div>
     }
     else
     {
-        <div class="row">
+        <div class="row g-4">
             @foreach (var vacancy in result.Items)
             {
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-sm border">
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title fw-bold">@vacancy.Title</h5>
-                            <p class="card-text text-muted mb-2">@Truncate(vacancy.DescriptionMarkdown, 120)</p>
-                            <div class="mb-2">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow rounded-4 overflow-hidden">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <h5 class="card-title fw-bold mb-2">@vacancy.Title</h5>
+                            <p class="card-text text-muted mb-3">@Truncate(vacancy.DescriptionMarkdown, 100)</p>
+
+                            <div class="d-flex flex-wrap gap-2 mb-3">
                                 @if (vacancy.SalaryFrom.HasValue || vacancy.SalaryTo.HasValue)
                                 {
-                                    <span class="badge bg-success me-1">
+                                    <span class="badge rounded-pill text-bg-success px-3 py-2">
                                         <i class="bi bi-cash-stack me-1"></i> @FormatSalary(vacancy.SalaryFrom, vacancy.SalaryTo)
                                     </span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(vacancy.Location))
                                 {
-                                    <span class="badge bg-secondary me-1">
+                                    <span class="badge rounded-pill text-bg-secondary px-3 py-2">
                                         <i class="bi bi-geo-alt me-1"></i> @vacancy.Location
                                     </span>
                                 }
                                 @if (vacancy.IsRemote)
                                 {
-                                    <span class="badge bg-info text-dark">
+                                    <span class="badge rounded-pill text-bg-info px-3 py-2">
                                         <i class="bi bi-wifi me-1"></i> Remote
                                     </span>
                                 }
                             </div>
-                            <small class="text-muted mb-3">
+
+                            <small class="text-muted mb-4">
                                 <i class="bi bi-calendar-event me-1"></i> Posted @vacancy.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
                             </small>
-                            <div class="mt-auto">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewDetails(vacancy.Id)">
-                                        <i class="bi bi-eye me-1"></i> Details
-                                    </button>
-                                    <button class="btn btn-sm btn-primary" @onclick="() => Apply(vacancy.Id)">
-                                        <i class="bi bi-send me-1"></i> Apply
-                                    </button>
-                                </div>
+
+                            <div class="mt-auto d-flex gap-2">
+                                <button class="btn btn-outline-primary rounded-pill flex-fill" @onclick="() => ViewDetails(vacancy.Id)">
+                                    <i class="bi bi-eye me-1"></i> Details
+                                </button>
+                                <button class="btn btn-primary rounded-pill flex-fill" @onclick="() => Apply(vacancy.Id)">
+                                    <i class="bi bi-send me-1"></i> Apply
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -110,19 +114,20 @@
             }
         </div>
 
-        <nav aria-label="Vacancies pagination">
-            <ul class="pagination justify-content-center mt-4">
+        <!-- Pagination -->
+        <nav aria-label="Vacancies pagination" class="mt-5">
+            <ul class="pagination justify-content-center">
                 <li class="page-item @(result.HasPreviousPage ? "" : "disabled")">
-                    <button class="page-link" @onclick="() => ChangePage(result.PageNumber - 1)">Previous</button>
+                    <button class="page-link rounded-pill mx-1" @onclick="() => ChangePage(result.PageNumber - 1)">Previous</button>
                 </li>
                 @for (int i = 1; i <= result.TotalPages; i++)
                 {
                     <li class="page-item @(i == result.PageNumber ? "active" : "")">
-                        <button class="page-link" @onclick="() => ChangePage(i)">@i</button>
+                        <button class="page-link rounded-pill mx-1" @onclick="() => ChangePage(i)">@i</button>
                     </li>
                 }
                 <li class="page-item @(result.HasNextPage ? "" : "disabled")">
-                    <button class="page-link" @onclick="() => ChangePage(result.PageNumber + 1)">Next</button>
+                    <button class="page-link rounded-pill mx-1" @onclick="() => ChangePage(result.PageNumber + 1)">Next</button>
                 </li>
             </ul>
         </nav>
@@ -187,7 +192,7 @@
 
     private string FormatSalary(decimal? from, decimal? to)
     {
-        if (from.HasValue && to.HasValue) return $"{from:N0} - {to:N0}";
+        if (from.HasValue && to.HasValue) return $"{from:N0} – {to:N0}";
         if (from.HasValue) return $"From {from:N0}";
         if (to.HasValue) return $"Up to {to:N0}";
         return "Not specified";

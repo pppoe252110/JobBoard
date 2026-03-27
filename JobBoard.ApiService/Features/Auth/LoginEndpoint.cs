@@ -21,6 +21,7 @@ public class LoginEndpoint : Endpoint<LoginRequest, object>
     {
         Post("/auth/login");
         AllowAnonymous();
+        Options(x => x.RequireRateLimiting("AuthPolicy"));
     }
 
     public override async Task HandleAsync(LoginRequest req, CancellationToken ct)

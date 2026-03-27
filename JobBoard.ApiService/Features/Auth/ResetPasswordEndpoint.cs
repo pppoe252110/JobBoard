@@ -26,7 +26,10 @@ public class ResetPasswordEndpoint : Endpoint<ResetPasswordRequest>
     public override async Task HandleAsync(ResetPasswordRequest req, CancellationToken ct)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == req.Email, ct);
-        if (user == null || user.PasswordResetToken != req.Token || user.ResetTokenExpiresAt < DateTime.UtcNow)
+        var tokenBytes = System.Text.Encoding.UTF8.GetBytes(req.Token);
+        var dbTokenBytes = System.Text.Encoding.UTF8.GetBytes(user.PasswordResetToken ?? "");
+
+        if (user == null || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(tokenBytes, dbTokenBytes) || user.ResetTokenExpiresAt < DateTime.UtcNow)
         {
             await Send.UnauthorizedAsync(ct);
             return;

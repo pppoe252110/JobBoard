@@ -25,10 +25,14 @@ builder.Services.AddScoped<ThemeService>();
 builder.Services.AddTransient<CookieDelegatingHandler>();
 
 // DataProtection (shared between API + Web)
-var sharedKeyPath = Path.Combine(Path.GetTempPath(), "jobboard-auth-keys");
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(sharedKeyPath))
-    .SetApplicationName("JobBoard");
+var redisConnection = builder.Configuration.GetConnectionString("cache");
+if (!string.IsNullOrEmpty(redisConnection))
+{
+    var redis = StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnection);
+    builder.Services.AddDataProtection()
+        .SetApplicationName("JobBoard")
+        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+}
 
 builder.Services.AddHttpClient<AuthApiClient>(client =>
 {
@@ -95,8 +99,14 @@ app.MapPost("/auth/login-callback", async (
             new Claim(ClaimTypes.Email, loginResult.Email)
         };
 
+        var authProperties = new AuthenticationProperties
+        {
+            IsPersistent = true,
+            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(12)
+        };
+
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), authProperties);
 
         return Results.Redirect("/");
     }

@@ -1,0 +1,13 @@
+﻿.icon {
+    color: rgba(255, 255, 255, .9);
+    background: linear-gradient(145deg, #375ee3 0%, #6543e0 80%);
+}
+
+.hover-lift {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+    .hover-lift:hover {
+        transform: translateY(-5px); /* Moves it up */
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.175) !important; /* Bootstrap's shadow-lg value */
+    }

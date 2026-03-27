@@ -5,8 +5,10 @@ using JobBoard.ApiService.Common.PasswordHashing;
 using JobBoard.ApiService.Data;
 using Meilisearch;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,12 +28,16 @@ builder.Services.AddDbContext<JobPortalDbContext>(options =>
     options.UseNpgsql(dataSource));
 
 // Cookie Setup and Data Protection
-var sharedKeyPath = Path.Combine(Path.GetTempPath(), "jobboard-auth-keys");
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(sharedKeyPath))
-    .SetApplicationName("JobBoard");
+var redisConnection = builder.Configuration.GetConnectionString("cache");
+if (!string.IsNullOrEmpty(redisConnection))
+{
+    var redis = ConnectionMultiplexer.Connect(redisConnection);
+    builder.Services.AddDataProtection()
+        .SetApplicationName("JobBoard")
+        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+}
 
-builder.Services.AddAuthenticationCookie(validFor: TimeSpan.FromMinutes(30), options =>
+builder.Services.AddAuthenticationCookie(validFor: TimeSpan.FromHours(12), options =>
 {
     options.Cookie.Name = "JobBoardAuth";
     options.Cookie.SameSite = SameSiteMode.Lax;
@@ -40,6 +46,16 @@ builder.Services.AddAuthenticationCookie(validFor: TimeSpan.FromMinutes(30), opt
 })
 .AddAuthorization()
 .AddFastEndpoints();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("AuthPolicy", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1); 
+    });
+});
+
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
@@ -64,6 +80,8 @@ app.MapDefaultEndpoints();
 app.UseAuthentication()
    .UseAuthorization()
    .UseFastEndpoints();
+
+app.UseRateLimiter();
 
 // 2. RUN MEILISEARCH INDEX CONFIGURATION HERE (After app is built)
 using (var scope = app.Services.CreateScope())

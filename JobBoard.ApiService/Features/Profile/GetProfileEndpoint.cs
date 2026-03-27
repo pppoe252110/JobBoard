@@ -39,6 +39,12 @@ public class GetProfileEndpoint : EndpointWithoutRequest<ProfileResponse>
             return;
         }
 
-        await Send.OkAsync(new ProfileResponse { Id = user.Id, Nickname = user.Nickname }, ct);
+        await Send.OkAsync(new ProfileResponse
+        {
+            Id = user.Id,
+            Nickname = user.Nickname,
+            Email = user.Email,
+            CreatedAt = user.CreatedAt
+        }, ct);
     }
 }

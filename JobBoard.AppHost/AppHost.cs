@@ -1,6 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var cache = builder.AddRedis("cache");
+var cache = builder.AddRedis("cache").WithDataVolume("redis-cache");
 
 var postgresPassword = builder.AddParameter("postgres-password", secret: true);
 
@@ -15,6 +15,7 @@ var db = postgres.AddDatabase("jobboarddb");
 var apiService = builder.AddProject<Projects.JobBoard_ApiService>("apiservice")
     .WithReference(db)
     .WithReference(meilisearch)
+    .WithReference(cache)
     .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.JobBoard_Web>("webfrontend")

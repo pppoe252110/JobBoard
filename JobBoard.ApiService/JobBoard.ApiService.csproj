@@ -19,6 +19,7 @@
     <PackageReference Include="FastEndpoints.Attributes" Version="8.0.1" />
     <PackageReference Include="FastEndpoints.Messaging.Core" Version="8.0.1" />
     <PackageReference Include="FastEndpoints.Security" Version="8.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
