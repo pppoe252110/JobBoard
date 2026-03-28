@@ -9,8 +9,8 @@
 <!-- Vacancy Modal -->
 <div class="modal fade" id="vacancyModal" aria-labelledby="vacancyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-0 pb-0">
+        <div class="modal-content rounded-4 shadow">
+            <div class="modal-header pb-0">
                 <h5 class="modal-title fw-bold" id="vacancyModalLabel">
                     <i class="bi bi-briefcase-fill me-2"></i>@(IsEdit ? "Edit Vacancy" : "Create Vacancy")
                 </h5>
@@ -63,7 +63,7 @@
                         <div class="alert alert-danger rounded-3 mt-3">@ErrorMessage</div>
                     }
                 </div>
-                <div class="modal-footer border-0 pt-0">
+                <div class="modal-footer pt-0">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="Save" disabled="@isSaving">
                         @(isSaving ? "Saving..." : "Save")

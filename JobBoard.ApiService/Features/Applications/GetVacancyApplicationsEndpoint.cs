@@ -50,6 +50,7 @@ public class GetVacancyApplicationsEndpoint : EndpointWithoutRequest<List<Applic
                 x.app.Id,
                 x.app.VacancyId,
                 x.app.ResumeId,
+                x.res.UserId,
                 x.res.FullName,
                 x.res.Title,
                 x.app.AppliedAt,
@@ -61,4 +62,4 @@ public class GetVacancyApplicationsEndpoint : EndpointWithoutRequest<List<Applic
     }
 }
 
-public record ApplicationDto(Guid Id, Guid VacancyId, Guid ResumeId, string ApplicantName, string ResumeTitle, DateTimeOffset AppliedAt, string Status);
+public record ApplicationDto(Guid Id, Guid VacancyId, Guid ResumeId, Guid ApplicantUserId, string ApplicantName, string ResumeTitle, DateTimeOffset AppliedAt, string Status);

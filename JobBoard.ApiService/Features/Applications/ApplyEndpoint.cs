@@ -41,6 +41,14 @@ public class ApplyEndpoint : Endpoint<ApplyRequest>
             return;
         }
 
+        // Prevent user from applying to their own vacancy
+        if (vacancy.UserId == userId)
+        {
+            AddError("You cannot apply to your own vacancy.");
+            await Send.ErrorsAsync(400, ct);
+            return;
+        }
+
         // Check if resume belongs to user
         var resume = await _db.Resumes.FindAsync(new object[] { req.ResumeId }, ct);
         if (resume == null || resume.UserId != userId)
@@ -52,6 +60,7 @@ public class ApplyEndpoint : Endpoint<ApplyRequest>
         // Check if already applied
         var alreadyApplied = await _db.Applications
             .AnyAsync(a => a.VacancyId == vacancyId && a.ResumeId == req.ResumeId, ct);
+
         if (alreadyApplied)
         {
             AddError("You have already applied to this vacancy.");

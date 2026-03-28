@@ -1,0 +1,66 @@
+﻿@page "/my-applications"
+@using JobBoard.Web.Services
+@inject VacancyApiClient VacancyApi
+
+<PageTitle>My Applications</PageTitle>
+
+<div class="container py-5">
+    <h1 class="display-5 fw-bold mb-4">My Applications</h1>
+
+    @if (applications == null)
+    {
+        <div class="spinner-border text-primary"></div>
+    }
+    else if (!applications.Any())
+    {
+        <div class="alert alert-info shadow-sm rounded-4">You haven't applied to any jobs yet!</div>
+    }
+    else
+    {
+        <div class="card shadow rounded-4 overflow-hidden">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table">
+                    <tr>
+                        <th class="ps-4">Vacancy Title</th>
+                        <th>Applied Date</th>
+                        <th>Status</th>
+                        <th class="pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var app in applications)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-semibold">@app.VacancyTitle</td>
+                            <td>@app.AppliedAt.ToLocalTime().ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(app.Status) rounded-pill">@app.Status</span>
+                            </td>
+                            <td class="pe-4">
+                                <a href="/vacancy/@app.VacancyId" class="btn btn-sm btn-outline-primary rounded-pill">View Job</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<MyApplicationDto>? applications;
+
+    protected override async Task OnInitializedAsync()
+    {
+        applications = await VacancyApi.GetMyApplicationsAsync();
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Review" => "text-bg-warning",
+        "Interview" => "text-bg-info",
+        "Offered" => "text-bg-success",
+        "Rejected" => "text-bg-danger",
+        _ => "text-bg-secondary" // Default for "Applied"
+    };
+}

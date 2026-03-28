@@ -1,9 +1,11 @@
 using JobBoard.Web.Components;
 using JobBoard.Web.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 
@@ -34,6 +36,7 @@ if (!string.IsNullOrEmpty(redisConnection))
         .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
 }
 
+// API Clients
 builder.Services.AddHttpClient<AuthApiClient>(client =>
 {
     client.BaseAddress = new Uri("https+http://apiservice");
@@ -49,6 +52,12 @@ builder.Services.AddHttpClient<ResumeApiClient>(client =>
 {
     client.BaseAddress = new Uri("https+http://apiservice");
 }).AddHttpMessageHandler<CookieDelegatingHandler>();
+
+builder.Services.AddHttpClient<ChatApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https+http://apiservice");
+}).AddHttpMessageHandler<CookieDelegatingHandler>();
+
 // Auth
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -116,8 +125,14 @@ app.MapPost("/auth/login-callback", async (
 
 app.MapPost("/auth/logout-callback", async (HttpContext context) =>
 {
+
+    //var options = context.RequestServices.GetRequiredService<IOptions<AntiforgeryOptions>>();
+    //string cookieName = options.Value.Cookie.Name!;
+    //context.Response.Cookies.Delete(cookieName);
+
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
     return Results.Redirect("/login");
-});
+}).DisableAntiforgery();
 
 app.Run();

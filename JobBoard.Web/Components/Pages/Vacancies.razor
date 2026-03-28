@@ -17,8 +17,7 @@
 <div class="container py-5">
     <h1 class="display-5 fw-bold mb-4">Job Vacancies</h1>
 
-    <!-- Search Card -->
-    <div class="card border-0 shadow rounded-4 mb-5">
+    <div class="card shadow rounded-4 mb-5">
         <div class="card-body p-4">
             <div class="row g-3">
                 <div class="col-md-4">
@@ -60,7 +59,7 @@
     }
     else if (!result.Items.Any())
     {
-        <div class="alert alert-info rounded-4 border-0 shadow-sm" role="alert">
+        <div class="alert alert-info rounded-4 shadow-sm" role="alert">
             <i class="bi bi-info-circle me-2"></i> No vacancies match your criteria.
         </div>
     }
@@ -70,7 +69,7 @@
             @foreach (var vacancy in result.Items)
             {
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 border-0 shadow rounded-4 overflow-hidden">
+                    <div class="card h-100 shadow rounded-4 overflow-hidden">
                         <div class="card-body p-4 d-flex flex-column">
                             <h5 class="card-title fw-bold mb-2">@vacancy.Title</h5>
                             <p class="card-text text-muted mb-3">@Truncate(vacancy.DescriptionMarkdown, 100)</p>
@@ -78,19 +77,19 @@
                             <div class="d-flex flex-wrap gap-2 mb-3">
                                 @if (vacancy.SalaryFrom.HasValue || vacancy.SalaryTo.HasValue)
                                 {
-                                    <span class="badge rounded-pill text-bg-success px-3 py-2">
+                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-3 py-2">
                                         <i class="bi bi-cash-stack me-1"></i> @FormatSalary(vacancy.SalaryFrom, vacancy.SalaryTo)
                                     </span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(vacancy.Location))
                                 {
-                                    <span class="badge rounded-pill text-bg-secondary px-3 py-2">
+                                    <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary px-3 py-2">
                                         <i class="bi bi-geo-alt me-1"></i> @vacancy.Location
                                     </span>
                                 }
                                 @if (vacancy.IsRemote)
                                 {
-                                    <span class="badge rounded-pill text-bg-info px-3 py-2">
+                                    <span class="badge rounded-pill bg-info bg-opacity-10 text-info px-3 py-2">
                                         <i class="bi bi-wifi me-1"></i> Remote
                                     </span>
                                 }
@@ -104,9 +103,14 @@
                                 <button class="btn btn-outline-primary rounded-pill flex-fill" @onclick="() => ViewDetails(vacancy.Id)">
                                     <i class="bi bi-eye me-1"></i> Details
                                 </button>
-                                <button class="btn btn-primary rounded-pill flex-fill" @onclick="() => Apply(vacancy.Id)">
-                                    <i class="bi bi-send me-1"></i> Apply
-                                </button>
+                                
+                                @* Only show the Apply button if the user is anonymous or they don't own the vacancy *@
+                                @if (currentUserId == null || currentUserId != vacancy.UserId)
+                                {
+                                    <button class="btn btn-primary rounded-pill flex-fill" @onclick="() => PromptApply(vacancy.Id)">
+                                        <i class="bi bi-send me-1"></i> Apply
+                                    </button>
+                                }
                             </div>
                         </div>
                     </div>
@@ -114,7 +118,6 @@
             }
         </div>
 
-        <!-- Pagination -->
         <nav aria-label="Vacancies pagination" class="mt-5">
             <ul class="pagination justify-content-center">
                 <li class="page-item @(result.HasPreviousPage ? "" : "disabled")">
@@ -122,8 +125,9 @@
                 </li>
                 @for (int i = 1; i <= result.TotalPages; i++)
                 {
-                    <li class="page-item @(i == result.PageNumber ? "active" : "")">
-                        <button class="page-link rounded-pill mx-1" @onclick="() => ChangePage(i)">@i</button>
+                    var pageId = i;
+                    <li class="page-item @(pageId == result.PageNumber ? "active" : "")">
+                        <button class="page-link rounded-pill mx-1" @onclick="() => ChangePage(pageId)">@pageId</button>
                     </li>
                 }
                 <li class="page-item @(result.HasNextPage ? "" : "disabled")">
@@ -134,10 +138,59 @@
     }
 </div>
 
+<div class="modal fade" id="noResumeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create a Resume</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>You need to create a resume before applying for vacancies. Would you like to create one now?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="GoToResumes">Go to Resumes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="selectResumeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Resume</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Which resume would you like to submit for this application?</p>
+                @if (userResumes != null && userResumes.Any())
+                {
+                    <select class="form-select" @bind="selectedResumeIdToApply">
+                        @foreach (var resume in userResumes)
+                        {
+                            <option value="@resume.Id">@resume.Title - @resume.FullName</option>
+                        }
+                    </select>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="ConfirmApply">Submit Application</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
     private VacancySearchModel search = new();
     private PagedResponse<VacancySearchResponse>? result;
+    
     private List<ResumeResponse>? userResumes;
+    private Guid? currentUserId;
+    private Guid? selectedVacancyIdToApply;
+    private Guid? selectedResumeIdToApply;
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,19 +199,28 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true)
         {
+            var userIdClaim = authState.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+            if (Guid.TryParse(userIdClaim, out var id)) currentUserId = id;
+
             userResumes = await ResumeApi.GetUserResumesAsync();
         }
     }
 
-    private async Task SearchAsync()
+    private async Task LoadVacancies()
     {
         result = await VacancyApi.SearchVacanciesAsync(search);
+    }
+
+    private async Task SearchAsync()
+    {
+        search.PageNumber = 1;
+        await LoadVacancies();
     }
 
     private async Task ChangePage(int page)
     {
         search.PageNumber = page;
-        await SearchAsync();
+        await LoadVacancies();
     }
 
     private void ViewDetails(Guid id)
@@ -166,16 +228,35 @@
         Navigation.NavigateTo($"/vacancy/{id}");
     }
 
-    private async Task Apply(Guid vacancyId)
+    private async Task PromptApply(Guid vacancyId)
     {
-        if (userResumes == null || !userResumes.Any())
+        // Not logged in → redirect to login
+        if (currentUserId == null || userResumes == null)
         {
             Navigation.NavigateTo("/login");
             return;
         }
 
-        var resumeId = userResumes.First().Id;
-        var response = await VacancyApi.ApplyAsync(vacancyId, resumeId);
+        // Logged in but no resume → show the modal
+        if (!userResumes.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("showModal", "#noResumeModal");
+            return;
+        }
+
+        // Has at least one resume → open selection modal
+        selectedVacancyIdToApply = vacancyId;
+        selectedResumeIdToApply = userResumes.First().Id;
+        await JSRuntime.InvokeVoidAsync("showModal", "#selectResumeModal");
+    }
+
+    private async Task ConfirmApply()
+    {
+        if (!selectedVacancyIdToApply.HasValue || !selectedResumeIdToApply.HasValue) return;
+
+        var response = await VacancyApi.ApplyAsync(selectedVacancyIdToApply.Value, selectedResumeIdToApply.Value);
+        await JSRuntime.InvokeVoidAsync("hideModal", "#selectResumeModal");
+
         if (response.IsSuccessStatusCode)
         {
             await JSRuntime.InvokeVoidAsync("alert", "Application submitted!");
@@ -185,6 +266,12 @@
             var error = await response.Content.ReadAsStringAsync();
             await JSRuntime.InvokeVoidAsync("alert", $"Failed to apply: {error}");
         }
+    }
+
+    private async Task GoToResumes()
+    {
+        await JSRuntime.InvokeVoidAsync("hideModal", "#noResumeModal");
+        Navigation.NavigateTo("/profile?tab=resumes");
     }
 
     private string Truncate(string text, int maxLength) =>

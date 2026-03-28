@@ -56,9 +56,17 @@ public class UpdateVacancyEndpoint : Endpoint<UpdateVacancyRequest>
         await _db.SaveChangesAsync(ct);
 
         var index = _meilisearchClient.Index("vacancies");
-        var taskInfo = await index.AddDocumentsAsync([MeilisearchConverter.ConvertVacancy(vacancy)], cancellationToken: ct);
-        await index.WaitForTaskAsync(taskInfo.TaskUid, cancellationToken: ct);
+        var taskInfo = await index.AddDocumentsAsync([MeilisearchConverter.ConvertVacancy(vacancy)], "id", ct);
+        var finishedTask = await index.WaitForTaskAsync(taskInfo.TaskUid, cancellationToken: ct);
 
+        if (finishedTask.Status == TaskInfoStatus.Failed)
+        {
+            Console.WriteLine($"Error: {finishedTask.Error}");
+            foreach (var item in finishedTask.Error)
+            {
+                Console.WriteLine($"Error: {item.Key + " " + item.Value}");
+            }
+        }
         await Send.NoContentAsync(ct);
     }
 }

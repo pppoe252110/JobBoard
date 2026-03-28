@@ -14,7 +14,7 @@ else
 {
     <div class="container py-5">
 
-        <div class="card border-0 shadow-lg rounded-5 overflow-hidden mb-5">
+        <div class="card shadow-lg rounded-5 overflow-hidden mb-5">
             <div class="card-body p-4 p-md-5">
                 <div class="row align-items-center g-4">
                     <div class="col-md-8">
@@ -48,7 +48,7 @@ else
 
             <div class="col-lg-4">
             
-                <div class="card border-0 shadow rounded-4 mb-4">
+                <div class="card shadow rounded-4 mb-4">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-4 d-flex align-items-center">
                             <i class="bi bi-person-lines-fill me-2"></i>Contact
@@ -68,7 +68,7 @@ else
                     </div>
                 </div>
 
-                <div class="card border-0 shadow rounded-4">
+                <div class="card shadow rounded-4">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-4 d-flex align-items-center">
                             <i class="bi bi-lightning-charge-fill me-2"></i>Expertise
@@ -109,7 +109,7 @@ else
 
             <div class="col-lg-8">
 
-                <div class="card border-0 shadow rounded-4 mb-4">
+                <div class="card shadow rounded-4 mb-4">
                     <div class="card-body p-4 p-md-5">
                         <h5 class="fw-bold mb-4">Professional Summary</h5>
                         <p class="lead-sm text-body-secondary lh-lg mb-0">
@@ -118,12 +118,15 @@ else
                     </div>
                 </div>
 
-                <div class="card border-0 shadow rounded-4">
+                <div class="card shadow rounded-4">
                     <div class="card-body p-4 p-md-5">
                         <h5 class="fw-bold mb-5">Work Experience</h5>
 
                         <div class="position-relative">
-                            <div class="vr position-absolute h-100 d-none d-md-block"></div>
+                            @if (resume.WorkExperiences?.Any() == true)
+                            {
+                                <div class="vr position-absolute h-100 d-none d-md-block"></div>
+                            }
                             <div class="vstack gap-5 ps-md-4">
                                 @foreach (var we in resume.WorkExperiences.OrderByDescending(x => x.StartDate))
                                 {

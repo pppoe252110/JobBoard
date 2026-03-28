@@ -41,6 +41,7 @@ namespace JobBoard.ApiService.Utils
             var searchDocument = new
             {
                 id = vacancy.Id,
+                userId = vacancy.UserId,
                 title = vacancy.Title,
                 descriptionMarkdown = vacancy.DescriptionMarkdown,
                 salaryFrom = vacancy.SalaryFrom,

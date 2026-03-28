@@ -1,5 +1,8 @@
 ﻿@page "/register"
 
+@using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+@using System.Text.RegularExpressions
 @using JobBoard.Web.Services
 
 @inject NavigationManager Navigation
@@ -9,80 +12,226 @@
 
 <PageTitle>Register</PageTitle>
 
-<h1>Create an account</h1>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="fw-bold mb-4 text-center text-primary">Create Account</h2>
 
-<div class="mb-3">
-    <label for="email" class="form-label">Email</label>
-    <input type="email" class="form-control" id="email" @bind="email" />
-</div>
-<div class="mb-3">
-    <label for="nickname" class="form-label">Nickname (public display name)</label>
-    <input type="text" class="form-control" id="nickname" @bind="nickname" />
-</div>
-<div class="mb-3">
-    <label for="password" class="form-label">Password</label>
-    <input type="password" class="form-control" id="password" @bind="password" />
-</div>
-<div class="mb-3">
-    <label for="confirmPassword" class="form-label">Confirm Password</label>
-    <input type="password" class="form-control" id="confirmPassword" @bind="confirmPassword" />
-</div>
-<button class="btn btn-primary" @onclick="RegisterAsync" disabled="@isLoading">
-    @(isLoading ? "Registering..." : "Register")
-</button>
-<div class="mt-3">
-    Already have an account? <a href="/login">Login</a>
-</div>
+                    @if (editContext != null)
+                    {
+                        <EditForm EditContext="editContext" OnValidSubmit="HandleRegistration" FormName="RegistrationForm">
+                            <DataAnnotationsValidator />
 
-@if (!string.IsNullOrEmpty(message))
-{
-    <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">@message</div>
-}
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Email Address</label>
+                                <InputText class="form-control rounded-pill px-3" @bind-Value="registerModel.Email" placeholder="name@example.com" />
+                                <ValidationMessage For="@(() => registerModel.Email)" class="text-danger small ms-2 mt-1" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Nickname</label>
+                                <InputText class="form-control rounded-pill px-3" @bind-Value="registerModel.Nickname" placeholder="johndoe" />
+                                <ValidationMessage For="@(() => registerModel.Nickname)" class="text-danger small ms-2 mt-1" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Password</label>
+                                <input type="password"
+                                       class="form-control rounded-pill px-3"
+                                       value="@registerModel.Password"
+                                       @oninput="OnPasswordInput"
+                                       placeholder="At least 8 characters..." />
+                                
+                                <div class="px-2 mt-2">
+                                    <div class="progress" style="height: 8px; background-color: #eee;">
+                                        <div class="progress-bar @StrengthBarClass"
+                                             role="progressbar"
+                                             style="width: @(StrengthScore * 20)%; transition: width 0.4s ease;"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <small class="text-muted">Security: <strong>@StrengthLabel</strong></small>
+                                        <small class="fw-bold @(StrengthScore < 4 ? "text-danger" : "text-success")">
+                                            @(StrengthScore < 4 ? "Too Weak" : "Good to go")
+                                        </small>
+                                    </div>
+                                </div>
+                                <ValidationMessage For="@(() => registerModel.Password)" class="text-danger small ms-2 mt-1" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold text-secondary">Confirm Password</label>
+                                <input type="password"
+                                       class="form-control rounded-pill px-3"
+                                       @oninput="OnConfirmPasswordInput"
+                                       placeholder="Match your password" />
+                                <ValidationMessage For="@(() => registerModel.ConfirmPassword)" class="text-danger small ms-2 mt-1" />
+                            </div>
+
+                            <button type="submit" class="btn btn-primary rounded-pill w-100 py-2 fw-bold shadow-sm"
+                                    disabled="@(isLoading || StrengthScore < 4)">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Creating Account...</span>
+                                }
+                                else
+                                {
+                                    <span>Register</span>
+                                }
+                            </button>
+                        </EditForm>
+                    }
+
+                    @* Feedback Messages *@
+                    @if (!string.IsNullOrEmpty(uiMessage))
+                    {
+                        <div class="alert @(isError ? "alert-danger" : "alert-success") rounded-3 mt-4">
+                            <i class="bi @(isError ? "bi-exclamation-octagon" : "bi-check-circle") me-2"></i>
+                            @uiMessage
+                        </div>
+                    }
+
+                    @if (apiErrors.Any())
+                    {
+                        <div class="alert alert-danger rounded-3 mt-3">
+                            <ul class="mb-0 small">
+                                @foreach (var err in apiErrors)
+                                {
+                                    <li>@err</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="mt-4 text-center">
+                        <span class="text-muted">Joined us before?</span>
+                        <a href="/login" class="text-primary text-decoration-none fw-bold ms-1">Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
-    private string email = "";
-    private string nickname = "";
-    private string password = "";
-    private string confirmPassword = "";
+    private RegisterFormModel registerModel = new();
+    private EditContext? editContext;
     private bool isLoading = false;
-    private string? message;
+    private string? uiMessage;
     private bool isError;
+    private List<string> apiErrors = new();
 
-    private async Task RegisterAsync()
+    protected override void OnInitialized()
     {
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(nickname) ||
-            string.IsNullOrWhiteSpace(password))
-        {
-            message = "All fields are required.";
-            isError = true;
-            return;
-        }
+        editContext = new EditContext(registerModel);
+    }
 
-        if (password != confirmPassword)
-        {
-            message = "Passwords do not match.";
-            isError = true;
-            return;
-        }
+    // --- Live Input Handlers ---
 
+    private void OnPasswordInput(ChangeEventArgs e)
+    {
+        registerModel.Password = e.Value?.ToString() ?? "";
+        // Trigger validation for this field immediately
+        editContext?.NotifyFieldChanged(FieldIdentifier.Create(() => registerModel.Password));
+    }
+
+    private void OnConfirmPasswordInput(ChangeEventArgs e)
+    {
+        registerModel.ConfirmPassword = e.Value?.ToString() ?? "";
+        editContext?.NotifyFieldChanged(FieldIdentifier.Create(() => registerModel.ConfirmPassword));
+    }
+
+    // --- Strength Meter Logic ---
+
+    private int StrengthScore => CalculateStrength(registerModel.Password);
+
+    private string StrengthLabel => StrengthScore switch
+    {
+        0 => "Empty",
+        1 => "Very Weak",
+        2 => "Weak",
+        3 => "Fair",
+        4 => "Strong",
+        5 => "Very Secure",
+        _ => "Unknown"
+    };
+
+    private string StrengthBarClass => StrengthScore switch
+    {
+        <= 2 => "bg-danger",
+        3 => "bg-warning",
+        4 => "bg-info",
+        5 => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private int CalculateStrength(string pwd)
+    {
+        if (string.IsNullOrWhiteSpace(pwd)) return 0;
+        int score = 0;
+        if (pwd.Length >= 8) score++;
+        if (Regex.IsMatch(pwd, @"[A-Z]")) score++;
+        if (Regex.IsMatch(pwd, @"[a-z]")) score++;
+        if (Regex.IsMatch(pwd, @"[0-9]")) score++;
+        if (Regex.IsMatch(pwd, @"[^A-Za-z0-9]")) score++;
+        return score;
+    }
+
+    // --- Form Submission ---
+
+    private async Task HandleRegistration()
+    {
         isLoading = true;
-        message = null;
+        uiMessage = null;
+        apiErrors.Clear();
 
-        var response = await AuthApi.RegisterAsync(email, nickname, password);
+        var response = await AuthApi.RegisterAsync(registerModel.Email, registerModel.Nickname, registerModel.Password);
+
         if (response.IsSuccessStatusCode)
         {
-            message = "Registration successful! Redirecting...";
+            uiMessage = "Success! Welcoming you aboard...";
             isError = false;
             await Task.Delay(1500);
             Navigation.NavigateTo("/login", true);
         }
         else
         {
-            var error = await response.Content.ReadAsStringAsync();
-            message = $"Registration failed: {error}";
             isError = true;
+            var jsonString = await response.Content.ReadAsStringAsync();
+            try
+            {
+                var problem = JsonSerializer.Deserialize<FastEndpointsProblemResponse>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (problem?.Errors != null) apiErrors = problem.Errors.SelectMany(x => x.Value).ToList();
+                else uiMessage = "Registration failed. Please try again.";
+            }
+            catch { uiMessage = "A server error occurred."; }
         }
-
         isLoading = false;
+    }
+
+    // --- Models ---
+
+    public class RegisterFormModel
+    {
+        [Required(ErrorMessage = "Email is required."), EmailAddress(ErrorMessage = "Invalid email format.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Nickname is required."), StringLength(20, MinimumLength = 4)]
+        public string Nickname { get; set; } = "";
+
+        [Required(ErrorMessage = "Password is required.")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$",
+            ErrorMessage = "Password must be 8+ characters and include uppercase, lowercase, numbers, and symbols.")]
+        public string Password { get; set; } = "";
+
+        [Required(ErrorMessage = "Please confirm your password."), Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+
+    public class FastEndpointsProblemResponse
+    {
+        public Dictionary<string, List<string>> Errors { get; set; } = new();
     }
 }

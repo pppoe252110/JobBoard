@@ -52,7 +52,7 @@ builder.Services.AddRateLimiter(options =>
     options.AddFixedWindowLimiter("AuthPolicy", opt =>
     {
         opt.PermitLimit = 5;
-        opt.Window = TimeSpan.FromMinutes(1); 
+        opt.Window = TimeSpan.FromMinutes(1);
     });
 });
 
@@ -74,6 +74,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
+
+app.MapGet("/debug/vacancies", async (MeilisearchClient client) =>
+{
+    var index = client.Index("vacancies");
+    var docs = await index.GetDocumentsAsync<object>();
+    return docs;
+});
 
 app.MapDefaultEndpoints();
 
@@ -101,9 +108,12 @@ if (app.Environment.IsDevelopment())
 {
     var application = app.Services.CreateScope().ServiceProvider.GetRequiredService<JobPortalDbContext>();
 
-    var pendingMigrations = await application.Database.GetPendingMigrationsAsync();
-    if (pendingMigrations != null)
-        await application.Database.MigrateAsync();
+    if (application.Database != null)
+    {
+        var pendingMigrations = await application.Database.GetPendingMigrationsAsync();
+        if (pendingMigrations != null)
+            await application.Database.MigrateAsync();
+    }
 }
 
 app.Run();

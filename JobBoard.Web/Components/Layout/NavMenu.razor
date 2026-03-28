@@ -8,7 +8,7 @@
 <nav class="navbar navbar-expand-md py-3 shadow-sm sticky-top bg-body rounded-bottom-4">
     <div class="container-fluid px-4">
         <a class="navbar-brand fw-bold text-primary fs-4" href="">JobBoard</a>
-        <button class="navbar-toggler border-0" type="button" @onclick="ToggleNavMenu">
+        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="@NavMenuCssClass navbar-collapse" @onclick="CollapseNavMenu">
@@ -18,6 +18,11 @@
                         <i class="bi bi-house-door-fill me-1"></i> Home
                     </NavLink>
                 </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link rounded-pill px-3 py-2" href="my-applications">
+                        <i class="bi bi-send-check-fill me-1"></i> My Applies
+                    </NavLink>
+                </li>
             </ul>
             <ul class="navbar-nav ms-md-auto mb-2 mb-md-0 d-flex align-items-start align-items-md-center gap-2">
                 <AuthorizeView>
@@ -25,6 +30,11 @@
                         <li class="nav-item">
                             <NavLink class="nav-link rounded-pill px-3 py-2" href="profile">
                                 <i class="bi bi-person-fill me-1"></i> @nickname
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link rounded-pill px-3 py-2" href="messages">
+                                <i class="bi bi-chat-dots-fill me-1"></i> Messages
                             </NavLink>
                         </li>
                     </Authorized>
@@ -37,7 +47,7 @@
                     </NotAuthorized>
                 </AuthorizeView>
                 <li class="nav-item">
-                    <button class="btn rounded-pill px-3 py-2 border-0 bg-primary bg-opacity-10 hover-bg-opacity-25 transition" @onclick="ToggleTheme">
+                    <button class="btn rounded-pill px-3 py-2 bg-secondary bg-opacity-10 hover-bg-opacity-25 transition" @onclick="ToggleTheme">
                         @if (ThemeService.IsDarkMode)
                         {
                             <i class="bi bi-moon-fill"></i>

@@ -13,20 +13,21 @@
 <div class="container py-5">
     <h1 class="display-5 fw-bold mb-5">Candidate Resumes</h1>
 
-    <div class="card border-0 shadow rounded-4 mb-5">
+    <!-- Search Card -->
+    <div class="card shadow rounded-4 mb-5">
         <div class="card-body p-4 bg-body rounded-4">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label small fw-bold text-uppercase text-body-secondary" for="searchQuery">Search term</label>
-                    <input type="text" id="searchQuery" class="form-control border-0 shadow-sm rounded-3" placeholder="Title or keywords" @bind="search.Query" />
+                    <input type="text" id="searchQuery" class="form-control shadow-sm rounded-3" placeholder="Title or keywords" @bind="search.Query" @bind:event="oninput" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-uppercase text-body-secondary" for="minExperience">Min Experience</label>
-                    <input type="number" id="minExperience" class="form-control border-0 shadow-sm rounded-3" placeholder="Years" @bind="search.MinExperience" />
+                    <input type="number" id="minExperience" class="form-control shadow-sm rounded-3" placeholder="Years" @bind="search.MinExperience" @bind:event="oninput" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-uppercase text-body-secondary" for="requiredSkill">Required Skill</label>
-                    <input type="text" id="requiredSkill" class="form-control border-0 shadow-sm rounded-3" placeholder="e.g. C#" @bind="search.RequiredSkill" />
+                    <input type="text" id="requiredSkill" class="form-control shadow-sm rounded-3" placeholder="e.g. C#" @bind="search.RequiredSkill" @bind:event="oninput" />
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button class="btn btn-primary w-100 rounded-pill shadow-sm py-2" @onclick="SearchAsync">
@@ -39,10 +40,16 @@
 
     @if (result == null)
     {
-        <div class="text-center py-5">
+        <div class="d-flex justify-content-center align-items-center py-5">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
+        </div>
+    }
+    else if (!result.Items.Any())
+    {
+        <div class="alert alert-info rounded-4 shadow-sm" role="alert">
+            <i class="bi bi-info-circle me-2"></i> No resumes match your criteria.
         </div>
     }
     else
@@ -51,17 +58,17 @@
             @foreach (var resume in result.Items)
             {
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 border-0 shadow rounded-4 overflow-hidden">
+                    <div class="card h-100 shadow rounded-4 overflow-hidden">
                         <div class="card-body p-4 d-flex flex-column">
                             <h5 class="fw-bold mb-3">@resume.Title</h5>
                             
                             <div class="d-flex flex-wrap gap-2 mb-4">
-                                <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border-0 px-3 py-2">
+                                <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary px-3 py-2">
                                     <i class="bi bi-briefcase me-1"></i> @resume.ExperienceYears yrs
                                 </span>
                                 @if (resume.ExpectedSalary.HasValue)
                                 {
-                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border-0 px-3 py-2">
+                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-3 py-2">
                                         <i class="bi bi-cash-stack me-1"></i> @resume.ExpectedSalary.Value.ToString("N0")
                                     </span>
                                 }
@@ -77,11 +84,31 @@
                 </div>
             }
         </div>
-        <nav class="mt-5">
+
+        <!-- Pagination -->
+        <nav class="mt-5" aria-label="Resumes pagination">
             <ul class="pagination justify-content-center gap-2">
-                <li class="page-item"><button class="page-link rounded-pill border-0 shadow-sm px-4" @onclick="() => ChangePage(result.PageNumber - 1)">Prev</button></li>
-                <li class="page-item active"><button class="page-link rounded-pill border-0 shadow-sm px-4">@result.PageNumber</button></li>
-                <li class="page-item"><button class="page-link rounded-pill border-0 shadow-sm px-4" @onclick="() => ChangePage(result.PageNumber + 1)">Next</button></li>
+                <li class="page-item @(result.HasPreviousPage ? "" : "disabled")">
+                    <button class="page-link rounded-pill shadow-sm px-4" @onclick="() => ChangePage(result.PageNumber - 1)">
+                        Prev
+                    </button>
+                </li>
+
+                @for (int i = 1; i <= result.TotalPages; i++)
+                {
+                    var pageId = i; // ✅ capture the current value
+                    <li class="page-item @(pageId == result.PageNumber ? "active" : "")">
+                        <button class="page-link rounded-pill shadow-sm px-4" @onclick="() => ChangePage(pageId)">
+                            @pageId
+                        </button>
+                    </li>
+                }
+
+                <li class="page-item @(result.HasNextPage ? "" : "disabled")">
+                    <button class="page-link rounded-pill shadow-sm px-4" @onclick="() => ChangePage(result.PageNumber + 1)">
+                        Next
+                    </button>
+                </li>
             </ul>
         </nav>
     }
@@ -96,15 +123,22 @@
         await SearchAsync();
     }
 
-    private async Task SearchAsync()
+    private async Task LoadResumes()
     {
         result = await ResumeApi.SearchResumesAsync(search);
     }
 
+    private async Task SearchAsync()
+    {
+        search.PageNumber = 1;
+        await LoadResumes();
+    }
+
     private async Task ChangePage(int page)
     {
+        if (page < 1 || (result != null && page > result.TotalPages)) return;
         search.PageNumber = page;
-        await SearchAsync();
+        await LoadResumes();
     }
 
     private void ViewDetails(Guid id)

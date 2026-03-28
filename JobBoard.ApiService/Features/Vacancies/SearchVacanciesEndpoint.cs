@@ -16,6 +16,7 @@ public record VacancySearchRequest(
 
 public record VacancySearchResponse(
     Guid Id,
+    Guid UserId,
     string Title,
     decimal? SalaryFrom,
     decimal? SalaryTo,
@@ -35,14 +36,17 @@ public class SearchVacanciesEndpoint(MeilisearchClient meilisearchClient)
     public override async Task HandleAsync(VacancySearchRequest req, CancellationToken ct)
     {
         var index = meilisearchClient.Index("vacancies");
-        var docs = await index.GetDocumentsAsync<object>(cancellationToken: ct);
-        Console.WriteLine(JsonSerializer.Serialize(docs));
 
-        var query = string.IsNullOrWhiteSpace(req.SearchTerm) ? "" : req.SearchTerm.Trim();
+        // 1. Combine SearchTerm and Location for Fuzzy Search
+        // This allows users to find "New York" by typing "New"
+        var queryParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(req.SearchTerm)) queryParts.Add(req.SearchTerm.Trim());
+        if (!string.IsNullOrWhiteSpace(req.Location)) queryParts.Add(req.Location.Trim());
 
+        var fullQuery = string.Join(" ", queryParts);
+
+        // 2. Build strict filters (Booleans and Numbers only)
         var filterParts = new List<string>();
-
-        // MATCH THE SETTINGS: PascalCase
         filterParts.Add("isArchived = false");
 
         if (req.IsRemote.HasValue)
@@ -52,54 +56,32 @@ public class SearchVacanciesEndpoint(MeilisearchClient meilisearchClient)
 
         if (req.MinSalary.HasValue)
         {
+            // Note: Meilisearch uses the property names from your Converter (lowercase 's')
             filterParts.Add($"salaryFrom >= {req.MinSalary.Value}");
         }
 
-        if (!string.IsNullOrWhiteSpace(req.Location))
-        {
-            var escapedLocation = req.Location.Replace("'", "\\'");
-            filterParts.Add($"location = '{escapedLocation}'");
-        }
-
-        var filter = filterParts.Count > 0 ? string.Join(" AND ", filterParts) : null;
-
         var searchOptions = new SearchQuery
         {
-            Offset = (req.PageNumber - 1) * req.PageSize,
+            Offset = (Math.Max(1, req.PageNumber) - 1) * req.PageSize,
             Limit = req.PageSize,
-            // MATCH THE SETTINGS: PascalCase (Make sure 'CreatedAt' is in your Sortable settings!)
             Sort = new[] { "createdAt:desc" },
-            Filter = filter
+            Filter = filterParts.Count > 0 ? string.Join(" AND ", filterParts) : null
         };
 
-        var result = await index.SearchAsync<Vacancy>(query, searchOptions, ct);
+        // 3. Use VacancySearchResponse as the T for the search to ensure mapping works
+        var result = await index.SearchAsync<VacancySearchResponse>(fullQuery, searchOptions, ct);
+        
+        // 4. Properly extract count
+        // Meilisearch returns 'EstimatedTotalHits' by default for performance
+        int totalCount = result.Hits.Count;
 
-        var items = result.Hits.Select(hit => new VacancySearchResponse(
-            hit.Id,
-            hit.Title,
-            hit.SalaryFrom,
-            hit.SalaryTo,
-            hit.Location,
-            hit.IsRemote,
-            hit.CreatedAt
-        )).ToList();
-
-        // EXTRACT TOTAL COUNT PROPERLY
-        int totalCount = 0;
-        if (result is SearchResult<Vacancy> standardResult)
-        {
-            totalCount = standardResult.EstimatedTotalHits;
-        }
-        // Temporarily ignore all filters and limits to see if the index is empty
-        var allDocs = await index.SearchAsync<Vacancy>("", new SearchQuery { Limit = 10 }, ct);
-        foreach (var hit in allDocs.Hits)
-        {
-            Console.WriteLine($"Id: {hit.Id}, Title: {hit.Title}, IsArchived: {hit.IsArchived}");
-        }
-
-        Console.WriteLine("Found Documents: " + totalCount);
+        Console.WriteLine((await index.GetDictionaryAsync()).Count()+"AAAAAAAAAAAAAAAAAAA"+totalCount);
 
         await Send.OkAsync(new PagedResponse<VacancySearchResponse>(
-            items, totalCount, req.PageNumber, req.PageSize), cancellation: ct);
+            result.Hits.ToList(),
+            totalCount,
+            req.PageNumber,
+            req.PageSize),
+            cancellation: ct);
     }
 }

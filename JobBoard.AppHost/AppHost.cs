@@ -14,6 +14,7 @@ var db = postgres.AddDatabase("jobboarddb");
 
 var apiService = builder.AddProject<Projects.JobBoard_ApiService>("apiservice")
     .WithReference(db)
+    .WaitFor(db)
     .WithReference(meilisearch)
     .WithReference(cache)
     .WithHttpHealthCheck("/health");

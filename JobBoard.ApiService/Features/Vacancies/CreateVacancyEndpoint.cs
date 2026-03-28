@@ -51,7 +51,8 @@ public class CreateVacancyEndpoint : Endpoint<CreateVacancyRequest>
 
         // Index the vacancy in Meilisearch
         var index = _meilisearchClient.Index("vacancies");
-        var taskInfo = await index.AddDocumentsAsync([MeilisearchConverter.ConvertVacancy(vacancy)], cancellationToken: ct);
+        var taskInfo = await index.AddDocumentsAsync([MeilisearchConverter.ConvertVacancy(vacancy)], "id", cancellationToken: ct);
+        await index.WaitForTaskAsync(taskInfo.TaskUid, cancellationToken: ct);
 
         await Send.OkAsync(new { vacancy.Id }, ct);
     }

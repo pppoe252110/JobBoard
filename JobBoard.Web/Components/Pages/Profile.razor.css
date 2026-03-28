@@ -1,9 +1,4 @@
-﻿.icon {
-    color: rgba(255, 255, 255, .9);
-    background: linear-gradient(145deg, #375ee3 0%, #6543e0 80%);
-}
-
-.hover-lift {
+﻿.hover-lift {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 

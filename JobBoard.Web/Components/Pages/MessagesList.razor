@@ -1,0 +1,52 @@
+﻿@page "/messages"
+@using JobBoard.Web.Services
+@inject ChatApiClient ChatApi
+@rendermode InteractiveServer
+
+<PageTitle>Messages</PageTitle>
+
+<div class="container py-5">
+    <h1 class="display-5 fw-bold mb-4">Messages</h1>
+
+    @if (conversations == null)
+    {
+        <div class="spinner-border text-primary"></div>
+    }
+    else if (!conversations.Any())
+    {
+        <div class="alert alert-info rounded-4 shadow-sm">You have no messages yet.</div>
+    }
+    else
+    {
+        <div class="list-group shadow rounded-4">
+            @foreach (var conv in conversations)
+            {
+                <a href="/chat/@conv.OtherUserId" class="list-group-item list-group-item-action p-4">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h5 class="mb-1 fw-bold">
+                            @conv.OtherUserName
+                            @if (conv.HasUnread)
+                            {
+                                <span class="badge bg-danger rounded-pill ms-2" style="font-size: 0.6rem;">NEW</span>
+                            }
+                        </h5>
+                        <small class="text-muted">@conv.LastMessageAt.ToLocalTime().ToString("MMM dd, HH:mm")</small>
+                    </div>
+        
+                    <p class="mb-1 text-muted text-truncate" style="max-width: 80%;">
+                        <span class="fw-medium text-secondary">@conv.LastSenderNickname:</span> @conv.LastMessage
+                    </p>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ConversationDto>? conversations;
+
+    protected override async Task OnInitializedAsync()
+    {
+        conversations = await ChatApi.GetConversationsAsync();
+    }
+}

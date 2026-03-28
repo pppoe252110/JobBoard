@@ -31,6 +31,7 @@ public class GetUserVacanciesEndpoint : EndpointWithoutRequest<List<VacancyRespo
             .Select(v => new VacancyResponse
             {
                 Id = v.Id,
+                UserId = v.UserId,
                 Title = v.Title,
                 DescriptionMarkdown = v.DescriptionMarkdown,
                 SalaryFrom = v.SalaryFrom,

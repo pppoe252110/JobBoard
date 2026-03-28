@@ -31,6 +31,9 @@ public class VacancyApiClient(HttpClient httpClient)
     public async Task<HttpResponseMessage> ApplyAsync(Guid vacancyId, Guid resumeId) =>
         await httpClient.PostAsJsonAsync($"/vacancies/{vacancyId}/apply", new { ResumeId = resumeId });
 
+    public async Task<List<MyApplicationDto>> GetMyApplicationsAsync() =>
+    await httpClient.GetFromJsonAsync<List<MyApplicationDto>>("/profile/applications") ?? new();
+
     public async Task<PagedResponse<VacancySearchResponse>> SearchVacanciesAsync(VacancySearchModel search)
     {
         var query = new List<string>();
@@ -42,12 +45,22 @@ public class VacancyApiClient(HttpClient httpClient)
             query.Add($"location={Uri.EscapeDataString(search.Location)}");
         if (search.IsRemote.HasValue)
             query.Add($"isRemote={search.IsRemote}");
+
+        // Send pageNumber as 1‑based (no conversion)
         query.Add($"pageNumber={search.PageNumber}");
         query.Add($"pageSize={search.PageSize}");
 
         var url = $"/vacancies/search?{string.Join("&", query)}";
-        return await httpClient.GetFromJsonAsync<PagedResponse<VacancySearchResponse>>(url)
-               ?? new PagedResponse<VacancySearchResponse> { Items = new List<VacancySearchResponse>(), TotalCount = 0, PageNumber = search.PageNumber, PageSize = search.PageSize };
+        var response = await httpClient.GetFromJsonAsync<PagedResponse<VacancySearchResponse>>(url);
+
+        // If the response is null, return an empty result with the original page number
+        return response ?? new PagedResponse<VacancySearchResponse>
+        {
+            Items = new List<VacancySearchResponse>(),
+            TotalCount = 0,
+            PageNumber = search.PageNumber,
+            PageSize = search.PageSize
+        };
     }
 }
 
@@ -56,6 +69,7 @@ public record ApplicationDto(
     Guid Id,
     Guid VacancyId,
     Guid ResumeId,
+    Guid ApplicantUserId,
     string ApplicantName,
     string ResumeTitle,
     DateTimeOffset AppliedAt,
@@ -83,6 +97,7 @@ public record UpdateVacancyRequest(
 
 public record VacancyResponse(
     Guid Id,
+    Guid UserId,
     string Title,
     string DescriptionMarkdown,
     decimal? SalaryFrom,
@@ -92,3 +107,5 @@ public record VacancyResponse(
     DateTimeOffset CreatedAt,
     bool IsArchived
 );
+
+public record MyApplicationDto(Guid ApplicationId, Guid VacancyId, string VacancyTitle, DateTimeOffset AppliedAt, string Status);

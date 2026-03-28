@@ -1,4 +1,5 @@
-﻿using JobBoard.ApiService.Features.Identity.Models;
+﻿using JobBoard.ApiService.Features.Chat.Models;
+using JobBoard.ApiService.Features.Identity.Models;
 using JobBoard.ApiService.Features.Resumes.Models;
 using JobBoard.ApiService.Features.Vacancies.Models;
 using JobBoard.ApiService.Models;
@@ -13,7 +14,7 @@ namespace JobBoard.ApiService.Data
         public DbSet<WorkExperience> WorkExperiences => Set<WorkExperience>();
         public DbSet<Vacancy> Vacancies => Set<Vacancy>();
         public DbSet<Application> Applications => Set<Application>();
-
+        public DbSet<Message> Messages => Set<Message>();
         public JobPortalDbContext(DbContextOptions<JobPortalDbContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -74,6 +75,12 @@ namespace JobBoard.ApiService.Data
                 b.ToTable("applications", "responses");
                 b.HasKey(x => x.Id);
                 b.HasIndex(x => new { x.VacancyId, x.ResumeId }).IsUnique();
+            });
+
+            modelBuilder.Entity<Message>(b =>
+            {
+                b.ToTable("messages", "communications");
+                b.HasKey(x => x.Id);
             });
         }
     }

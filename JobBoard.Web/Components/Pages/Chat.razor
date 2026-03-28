@@ -1,0 +1,95 @@
+﻿@page "/chat/{OtherUserId:guid}"
+@using JobBoard.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ChatApiClient ChatApi
+@inject AuthenticationStateProvider AuthProvider
+@rendermode InteractiveServer
+
+<PageTitle>Chat</PageTitle>
+
+<div class="container py-4" style="max-width: 800px;">
+    <div class="card shadow rounded-4 overflow-hidden d-flex flex-column" style="height: 75vh;">
+        <div class="card-header p-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <a href="/messages" class="btn btn-sm btn rounded-circle"><i class="bi bi-arrow-left"></i></a>
+                <h5 class="mb-0 fw-bold">Chat</h5>
+            </div>
+        </div>
+
+        <div class="card-body overflow-auto p-4 bg-body-tertiary d-flex flex-column gap-3" id="chat-container">
+            @if (messages == null)
+            {
+                <div class="align-self-center mt-auto mb-auto spinner-border text-primary"></div>
+            }
+            else if (!messages.Any())
+            {
+                <div class="align-self-center mt-auto mb-auto text-muted">Say hello to start the conversation!</div>
+            }
+            else
+            {
+                @foreach (var msg in messages)
+                {
+                    bool isMine = msg.SenderId == currentUserId;
+                    <div class="d-flex flex-column @(isMine ? "align-items-end" : "align-items-start")">
+                        @if (!isMine)
+                        {
+                            <small class="text ms-2 mb-1">@msg.SenderNickname</small>
+                        }
+                        <div class="p-3 rounded-4 shadow-sm @(isMine ? "bg-primary text-white" : "border")" style="max-width: 75%;">
+                            @msg.Content
+                        </div>
+                        <small class="text-muted mt-1 @(isMine ? "me-2" : "ms-2")" style="font-size: 0.75rem;">
+                            @msg.SentAt.ToLocalTime().ToString("HH:mm")
+                        </small>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="card-footer p-3 border-top">
+            <form @onsubmit="SendMessage" class="input-group">
+                <input id="message-text" type="text" class="form-control rounded-pill rounded-end-0 border-0 px-4 shadow-none" placeholder="Type a message..." @bind="newMessage" @bind:event="oninput" />
+                <button type="submit" class="btn btn-primary rounded-pill rounded-start-0 px-4" disabled="@string.IsNullOrWhiteSpace(newMessage)">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Guid OtherUserId { get; set; }
+    private List<MessageDto>? messages;
+    private string newMessage = "";
+    private Guid currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+        if (Guid.TryParse(userIdClaim, out var id))
+        {
+            currentUserId = id;
+            await LoadMessages();
+        }
+    }
+
+    private async Task LoadMessages()
+    {
+        messages = await ChatApi.GetConversationAsync(OtherUserId);
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(newMessage)) return;
+
+        var content = newMessage;
+        newMessage = ""; // Clear input immediately for UI responsiveness
+        
+        var success = await ChatApi.SendMessageAsync(OtherUserId, content);
+        if (success)
+        {
+            await LoadMessages();
+        }
+    }
+}
