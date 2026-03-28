@@ -1,2 +1,2 @@
 # JobBoard
-Aspire Web App
+Simple Job Search/Job Posting App
